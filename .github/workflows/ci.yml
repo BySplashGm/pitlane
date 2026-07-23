@@ -78,6 +78,9 @@ jobs:
       - name: Rector
         run: docker compose exec -T app vendor/bin/rector process --dry-run
 
+      - name: Doctrine schema validate
+        run: docker compose exec -T app bin/console doctrine:schema:validate
+
   tests:
     name: Tests
     needs: build
