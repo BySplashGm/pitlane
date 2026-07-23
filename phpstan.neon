@@ -1,0 +1,24 @@
+includes:
+    - vendor/phpstan/phpstan-symfony/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+
+parameters:
+    level: max
+    paths:
+        - bin
+        - src
+        - tests
+    excludePaths:
+        - tests/bootstrap.php
+    resultCachePath: var/phpstan
+    symfony:
+        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true
+    checkUninitializedProperties: true
+    checkImplicitMixed: true
+    checkBenevolentUnionTypes: true
+    checkMissingOverrideMethodAttribute: true
+    ignoreErrors:
+        -
+            message: '#Method App\\Kernel::getAllowedEnvs\(\) is unused\.#'
+            path: src/Kernel.php

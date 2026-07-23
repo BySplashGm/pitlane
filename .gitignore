@@ -27,3 +27,15 @@
 node_modules/
 .php-cs-fixer.cache
 ###< local ###
+
+###> friendsofphp/php-cs-fixer ###
+/.php-cs-fixer.cache
+###< friendsofphp/php-cs-fixer ###
+
+###> infection/infection ###
+/.infection.cache/
+###< infection/infection ###
+
+###> jolicode/castor ###
+/.castor.stub.php
+###< jolicode/castor ###
