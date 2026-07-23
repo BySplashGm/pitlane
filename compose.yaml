@@ -12,7 +12,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      # Inside the container Postgres is reached by its service name, not 127.0.0.1
+      # (the host .env DATABASE_URL uses 127.0.0.1 for host-side tooling via the port map).
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-16}&charset=utf8"
     networks:
       - default
       - pitlane

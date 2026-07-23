@@ -78,6 +78,9 @@ jobs:
       - name: Rector
         run: docker compose exec -T app vendor/bin/rector process --dry-run
 
+      - name: Run database migrations
+        run: docker compose exec -T app bin/console doctrine:migrations:migrate --no-interaction
+
       - name: Doctrine schema validate
         run: docker compose exec -T app bin/console doctrine:schema:validate
 
@@ -109,6 +112,11 @@ jobs:
       - name: Install dependencies
         run: docker compose exec -T app composer install --no-progress --prefer-dist
 
+      - name: Run database migrations
+        run: |
+          docker compose exec -T app bin/console doctrine:database:create --env=test --if-not-exists
+          docker compose exec -T app bin/console doctrine:migrations:migrate --no-interaction --env=test
+
       - name: Run test suite with coverage
         run: |
           set -o pipefail
@@ -121,5 +129,6 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           git fetch --depth=1 origin "$BASE_REF"
+          docker compose exec -T app git config --global --add safe.directory /var/www/app
           docker compose exec -T app php -d memory_limit=1G vendor/bin/infection \
-            --git-diff-lines --git-diff-base=origin/$BASE_REF
+            --git-diff-lines --git-diff-base=FETCH_HEAD

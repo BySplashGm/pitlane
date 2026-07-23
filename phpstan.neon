@@ -1,6 +1,10 @@
 includes:
     - vendor/phpstan/phpstan-symfony/extension.neon
     - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-doctrine/rules.neon
 
 parameters:
     level: max
@@ -18,7 +22,3 @@ parameters:
     checkImplicitMixed: true
     checkBenevolentUnionTypes: true
     checkMissingOverrideMethodAttribute: true
-    ignoreErrors:
-        -
-            message: '#Method App\\Kernel::getAllowedEnvs\(\) is unused\.#'
-            path: src/Kernel.php
