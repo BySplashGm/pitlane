@@ -20,6 +20,27 @@ function setup(): void
     io()->success('Setup complete.');
 }
 
+#[AsTask(name: 'db:reset', description: 'Drop, recreate and migrate the dev and test databases from scratch')]
+function dbReset(): void
+{
+    foreach (['dev', 'test'] as $env) {
+        resetDatabase($env);
+    }
+
+    io()->success('Databases reset.');
+}
+
+function resetDatabase(string $env): void
+{
+    // Dropping the whole database (not just the schema) also wipes the migration
+    // tracking table, so migrations re-run cleanly even if a version was edited in place.
+    $console = sprintf('bin/console --env=%s ', $env);
+
+    run($console.'doctrine:database:drop --force --if-exists');
+    run($console.'doctrine:database:create');
+    run($console.'doctrine:migrations:migrate --no-interaction');
+}
+
 #[AsTask(name: 'up', description: 'Start the dev services (app, database, mailer)')]
 function up(): void
 {

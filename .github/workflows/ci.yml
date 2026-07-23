@@ -78,6 +78,9 @@ jobs:
       - name: Rector
         run: docker compose exec -T app vendor/bin/rector process --dry-run
 
+      - name: Run database migrations
+        run: docker compose exec -T app bin/console doctrine:migrations:migrate --no-interaction
+
       - name: Doctrine schema validate
         run: docker compose exec -T app bin/console doctrine:schema:validate
 
@@ -108,6 +111,11 @@ jobs:
 
       - name: Install dependencies
         run: docker compose exec -T app composer install --no-progress --prefer-dist
+
+      - name: Run database migrations
+        run: |
+          docker compose exec -T app bin/console doctrine:database:create --env=test --if-not-exists
+          docker compose exec -T app bin/console doctrine:migrations:migrate --no-interaction --env=test
 
       - name: Run test suite with coverage
         run: |

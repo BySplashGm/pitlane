@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use Rector\Caching\ValueObject\Storage\FileCacheStorage;
 use Rector\Config\RectorConfig;
+use Rector\Php83\Rector\ClassMethod\AddOverrideAttributeToOverriddenMethodsRector;
+use Rector\PHPUnit\CodeQuality\Rector\Class_\PreferPHPUnitThisCallRector;
+use Rector\PHPUnit\CodeQuality\Rector\ClassMethod\NoSetupWithParentCallOverrideRector;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -31,6 +34,17 @@ return RectorConfig::configure()
         doctrineCodeQuality: true,
     )
     ->withComposerBased(twig: true, doctrine: true, phpunit: true)
+    ->withRules([
+        AddOverrideAttributeToOverriddenMethodsRector::class,
+    ])
+    ->withSkip([
+        // Keep static PHPUnit assertions (self::assert*) so PHPStan strict-rules
+        // (staticMethod.dynamicCall) and php-cs-fixer agree on one call style.
+        PreferPHPUnitThisCallRector::class,
+        // Keep #[Override] on setUp()/tearDown(); PHPStan's
+        // checkMissingOverrideMethodAttribute requires it.
+        NoSetupWithParentCallOverrideRector::class,
+    ])
     ->withCache(
         cacheDirectory: __DIR__.'/var/rector',
         cacheClass: FileCacheStorage::class,
