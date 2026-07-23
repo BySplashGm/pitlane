@@ -129,5 +129,6 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           git fetch --depth=1 origin "$BASE_REF"
+          docker compose exec -T app git config --global --add safe.directory /var/www/app
           docker compose exec -T app php -d memory_limit=1G vendor/bin/infection \
             --git-diff-lines --git-diff-base=FETCH_HEAD
