@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: ~
+  workflow_dispatch: ~
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_TAG: pitlane-app:ci
+  DATABASE_URL: postgresql://app:!ChangeMe!@database:5432/app?serverVersion=16&charset=utf8
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.2.0
+
+      - name: Build Docker image and push to GHA cache
+        uses: docker/bake-action@v7.3.0
+        with:
+          provenance: false
+          pull: true
+          files: |
+            compose.yaml
+          set: |
+            *.tags=${{ env.IMAGE_TAG }}
+            *.cache-from=type=gha,scope=app
+            *.cache-to=type=gha,mode=max,scope=app
+
+  lint:
+    name: Lint
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.2.0
+
+      - name: Rebuild Docker image from GHA cache
+        uses: docker/bake-action@v7.3.0
+        with:
+          provenance: false
+          load: true
+          files: |
+            compose.yaml
+          set: |
+            *.tags=${{ env.IMAGE_TAG }}
+            *.cache-from=type=gha,scope=app
+
+      - name: Start services
+        run: docker compose up --wait
+
+      - name: Install dependencies
+        run: docker compose exec -T app composer install --no-progress --prefer-dist
+
+      - name: PHP-CS-Fixer
+        run: docker compose exec -T app vendor/bin/php-cs-fixer fix --dry-run --diff
+
+      - name: PHPStan
+        run: docker compose exec -T app vendor/bin/phpstan analyse --memory-limit=500M
+
+      - name: Rector
+        run: docker compose exec -T app vendor/bin/rector process --dry-run
+
+      - name: Doctrine schema validate
+        run: docker compose exec -T app bin/console doctrine:schema:validate
+
+  tests:
+    name: Tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.2.0
+
+      - name: Rebuild Docker image from GHA cache
+        uses: docker/bake-action@v7.3.0
+        with:
+          provenance: false
+          load: true
+          files: |
+            compose.yaml
+          set: |
+            *.tags=${{ env.IMAGE_TAG }}
+            *.cache-from=type=gha,scope=app
+
+      - name: Start services
+        run: docker compose up --wait
+
+      - name: Install dependencies
+        run: docker compose exec -T app composer install --no-progress --prefer-dist
+
+      - name: Run test suite with coverage
+        run: |
+          set -o pipefail
+          docker compose exec -T app vendor/bin/phpunit --coverage-text --only-summary-for-coverage-text | tee coverage_summary.txt
+          grep -E "Lines:\s+100\.00%" coverage_summary.txt
+
+      - name: Run Infection mutation tests against the base branch diff
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --depth=1 origin "$BASE_REF"
+          docker compose exec -T app php -d memory_limit=1G vendor/bin/infection \
+            --git-diff-lines --git-diff-base=origin/$BASE_REF

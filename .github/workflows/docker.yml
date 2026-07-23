@@ -1,0 +1,44 @@
+name: Docker
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: ~
+  workflow_dispatch: ~
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  ac-server:
+    name: Build ac-server image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.2.0
+
+      # acServer and its content/system folders are proprietary and gitignored
+      # (see ac-server/.gitignore) — CI only needs to confirm the Dockerfile builds,
+      # so stub out the files it expects to COPY.
+      - name: Stub proprietary acServer assets
+        run: |
+          mkdir -p ac-server/system ac-server/content
+          touch ac-server/acServer
+          chmod +x ac-server/acServer
+
+      - name: Build ac-server image
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: ac-server
+          push: false
+          provenance: false
+          cache-from: type=gha,scope=ac-server
+          cache-to: type=gha,mode=max,scope=ac-server
