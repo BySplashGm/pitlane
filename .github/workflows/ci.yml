@@ -75,6 +75,9 @@ jobs:
       - name: PHPStan
         run: docker compose exec -T app vendor/bin/phpstan analyse --memory-limit=500M
 
+      - name: Rector
+        run: docker compose exec -T app vendor/bin/rector process --dry-run
+
   tests:
     name: Tests
     needs: build
@@ -108,3 +111,12 @@ jobs:
           set -o pipefail
           docker compose exec -T app vendor/bin/phpunit --coverage-text --only-summary-for-coverage-text | tee coverage_summary.txt
           grep -E "Lines:\s+100\.00%" coverage_summary.txt
+
+      - name: Run Infection mutation tests against the base branch diff
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --depth=1 origin "$BASE_REF"
+          docker compose exec -T app php -d memory_limit=1G vendor/bin/infection \
+            --git-diff-lines --git-diff-base=origin/$BASE_REF
