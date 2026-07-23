@@ -8,6 +8,7 @@ RUN apk add --no-cache \
         libpq \
         postgresql-dev \
         docker-cli \
+        git \
     && docker-php-ext-install \
         intl \
         pdo_pgsql \
