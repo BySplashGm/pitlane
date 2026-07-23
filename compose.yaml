@@ -1,5 +1,26 @@
 
 services:
+###> pitlane/app ###
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/var/www/app:cached
+      - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+      - ${AC_SERVERS_DIR:-./var/ac-servers}:/ac-servers
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    networks:
+      - default
+      - pitlane
+    depends_on:
+      database:
+        condition: service_healthy
+###< pitlane/app ###
+
 ###> doctrine/doctrine-bundle ###
   database:
     image: postgres:${POSTGRES_VERSION:-16}-alpine
@@ -23,3 +44,9 @@ volumes:
 ###> doctrine/doctrine-bundle ###
   database_data:
 ###< doctrine/doctrine-bundle ###
+
+networks:
+###> pitlane/app ###
+  pitlane:
+    name: ${DOCKER_NETWORK:-pitlane}
+###< pitlane/app ###

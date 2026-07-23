@@ -20,10 +20,10 @@ function setup(): void
     io()->success('Setup complete.');
 }
 
-#[AsTask(name: 'up', description: 'Start the dev services (database, mailer)')]
+#[AsTask(name: 'up', description: 'Start the dev services (app, database, mailer)')]
 function up(): void
 {
-    run('docker compose up --wait');
+    run('docker compose up --wait --build');
 }
 
 #[AsTask(name: 'down', description: 'Stop all containers and remove orphans')]
