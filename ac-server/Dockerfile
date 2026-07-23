@@ -12,8 +12,11 @@ RUN dpkg --add-architecture i386 \
 WORKDIR /ac-server
 
 # Drop the acServer binary and its system/content folders into ac-server/ before building
-COPY . .
-RUN chmod +x acServer entrypoint.sh
+COPY entrypoint.sh ./entrypoint.sh
+COPY acServer ./acServer
+COPY system/ ./system/
+COPY content/ ./content/
+RUN chmod +x ./acServer ./entrypoint.sh
 
 VOLUME ["/ac-server/cfg"]
 
