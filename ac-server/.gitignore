@@ -1,0 +1,5 @@
+# Proprietary Assetto Corsa server files — drop them here locally before building, do not commit
+/acServer
+/content/
+/system/
+/cfg/
