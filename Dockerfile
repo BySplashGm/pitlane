@@ -13,7 +13,10 @@ RUN apk add --no-cache \
         pdo_pgsql \
         zip \
         opcache \
-    && apk del icu-dev libzip-dev postgresql-dev
+    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    && pecl install pcov \
+    && docker-php-ext-enable pcov \
+    && apk del .build-deps icu-dev libzip-dev postgresql-dev
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

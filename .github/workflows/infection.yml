@@ -1,0 +1,53 @@
+name: Infection
+
+on:
+  pull_request: ~
+  workflow_dispatch: ~
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_TAG: pitlane-app:ci
+
+jobs:
+  infection:
+    name: Mutation tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.2.0
+
+      - name: Build Docker image from GHA cache
+        uses: docker/bake-action@v7.3.0
+        with:
+          provenance: false
+          load: true
+          pull: true
+          files: |
+            compose.yaml
+          set: |
+            *.tags=${{ env.IMAGE_TAG }}
+            *.cache-from=type=gha,scope=app
+            *.cache-to=type=gha,mode=max,scope=app
+
+      - name: Start services
+        run: docker compose up --wait
+
+      - name: Install dependencies
+        run: docker compose exec -T app composer install --no-progress --prefer-dist
+
+      - name: Run Infection mutation tests against the base branch diff
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --depth=1 origin "$BASE_REF"
+          docker compose exec -T app php -d memory_limit=1G vendor/bin/infection \
+            --git-diff-lines --git-diff-base=origin/$BASE_REF
