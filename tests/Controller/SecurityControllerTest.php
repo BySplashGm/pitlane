@@ -34,13 +34,6 @@ final class SecurityControllerTest extends WebTestCase
         $this->truncateUsers($this->entityManager);
     }
 
-    #[Override]
-    protected function tearDown(): void
-    {
-        $this->truncateUsers($this->entityManager);
-        parent::tearDown();
-    }
-
     public function test_login_page_is_accessible_to_anonymous_users(): void
     {
         $kernelBrowser = $this->kernelBrowser;
@@ -117,6 +110,13 @@ final class SecurityControllerTest extends WebTestCase
         $this->expectException(LogicException::class);
 
         new SecurityController()->logout();
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        $this->truncateUsers($this->entityManager);
+        parent::tearDown();
     }
 
     private function createUser(string $email, string $plainPassword, UserRole $userRole): User

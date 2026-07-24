@@ -14,7 +14,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 /**
  * @extends Voter<string, User>
  */
-class UserVoter extends Voter
+final class UserVoter extends Voter
 {
     public const string EDIT = 'USER_EDIT';
 
