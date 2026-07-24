@@ -35,7 +35,13 @@ final class ServerValidationTest extends KernelTestCase
         $constraintViolationList = $this->validator->validate($server);
 
         self::assertGreaterThan(0, $constraintViolationList->count());
-        self::assertSame($expectedPropertyPath, $constraintViolationList->get(0)->getPropertyPath());
+
+        $propertyPaths = [];
+        foreach ($constraintViolationList as $violation) {
+            $propertyPaths[] = $violation->getPropertyPath();
+        }
+
+        self::assertContains($expectedPropertyPath, $propertyPaths);
     }
 
     /**

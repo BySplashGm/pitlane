@@ -20,7 +20,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\UniqueConstraint(name: 'uniq_server_udp_port', fields: ['udpPort'])]
 #[ORM\UniqueConstraint(name: 'uniq_server_http_port', fields: ['httpPort'])]
 #[ORM\HasLifecycleCallbacks]
-class Server
+final class Server
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
