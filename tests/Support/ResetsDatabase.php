@@ -12,4 +12,9 @@ trait ResetsDatabase
     {
         $entityManager->getConnection()->executeStatement('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
     }
+
+    private function truncateServers(EntityManagerInterface $entityManager): void
+    {
+        $entityManager->getConnection()->executeStatement('TRUNCATE TABLE servers RESTART IDENTITY CASCADE');
+    }
 }
