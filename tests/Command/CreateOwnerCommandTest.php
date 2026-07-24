@@ -31,13 +31,6 @@ final class CreateOwnerCommandTest extends KernelTestCase
         $this->truncateUsers($this->entityManager);
     }
 
-    #[Override]
-    protected function tearDown(): void
-    {
-        $this->truncateUsers($this->entityManager);
-        parent::tearDown();
-    }
-
     public function test_it_creates_the_owner_account(): void
     {
         $commandTester = $this->commandTester();
@@ -72,6 +65,13 @@ final class CreateOwnerCommandTest extends KernelTestCase
 
         self::assertSame(1, $exitCode);
         self::assertStringContainsString('An owner account already exists.', $commandTester->getDisplay());
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        $this->truncateUsers($this->entityManager);
+        parent::tearDown();
     }
 
     private function commandTester(): CommandTester

@@ -26,7 +26,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
     name: 'pitlane:create-owner',
     description: 'Create the initial owner account',
 )]
-class CreateOwnerCommand extends Command
+final class CreateOwnerCommand extends Command
 {
     public function __construct(
         private readonly UserRepository $userRepository,
