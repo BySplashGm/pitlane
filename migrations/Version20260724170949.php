@@ -8,13 +8,13 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
 /**
- * Creates the server table.
+ * Creates the servers table and the user_server join table.
  */
 final class Version20260724170949 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Create the servers table';
+        return 'Create the servers and user_server tables';
     }
 
     public function up(Schema $schema): void
@@ -53,10 +53,23 @@ final class Version20260724170949 extends AbstractMigration
         $this->addSql('CREATE UNIQUE INDEX uniq_server_tcp_port ON servers (tcp_port)');
         $this->addSql('CREATE UNIQUE INDEX uniq_server_udp_port ON servers (udp_port)');
         $this->addSql('CREATE UNIQUE INDEX uniq_server_http_port ON servers (http_port)');
+
+        $this->addSql(<<<'SQL'
+            CREATE TABLE user_server (
+                user_id INT NOT NULL,
+                server_id INT NOT NULL,
+                PRIMARY KEY(user_id, server_id)
+            )
+            SQL);
+        $this->addSql('CREATE INDEX IDX_3F3FCECBA76ED395 ON user_server (user_id)');
+        $this->addSql('CREATE INDEX IDX_3F3FCECB1844E6B7 ON user_server (server_id)');
+        $this->addSql('ALTER TABLE user_server ADD CONSTRAINT FK_3F3FCECBA76ED395 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE');
+        $this->addSql('ALTER TABLE user_server ADD CONSTRAINT FK_3F3FCECB1844E6B7 FOREIGN KEY (server_id) REFERENCES servers (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE');
     }
 
     public function down(Schema $schema): void
     {
+        $this->addSql('DROP TABLE user_server');
         $this->addSql('DROP TABLE servers');
     }
 }
