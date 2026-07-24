@@ -41,6 +41,16 @@ function resetDatabase(string $env): void
     run($console.'doctrine:migrations:migrate --no-interaction');
 }
 
+#[AsTask(name: 'db:migrate', description: 'Run pending migrations on the dev and test databases')]
+function dbMigrate(): void
+{
+    foreach (['dev', 'test'] as $env) {
+        run(sprintf('bin/console --env=%s doctrine:migrations:migrate --no-interaction', $env));
+    }
+
+    io()->success('Migrations applied.');
+}
+
 #[AsTask(name: 'up', description: 'Start the dev services (app, database, mailer)')]
 function up(): void
 {

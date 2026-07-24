@@ -24,6 +24,7 @@ Task automation goes through Castor:
 - `castor setup` — first-run bootstrap (services + schema)
 - `castor up` / `castor down` — start / tear down the dev stack
 - `castor db:reset` — drop, recreate and migrate the dev + test databases
+- `castor db:migrate` — run pending migrations on the dev + test databases without dropping them
 - `castor lint` — run CS Fixer, Rector and PHPStan (max) in check mode
 - `castor lint:fix` — same, auto-fixing CS Fixer and Rector (PHPStan stays read-only)
 - `castor phpstan` / `castor cs` / `castor rector` — run one tool on its own (each has a `:fix` variant where fixing applies)
