@@ -7,6 +7,7 @@ namespace App\Tests\Service;
 use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
+use App\Exception\MissingContainerSlugException;
 use App\Service\FilesystemAcConfigService;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -39,6 +40,16 @@ final class FilesystemAcConfigServiceTest extends TestCase
             Path::join($this->serversDir, 'spa-endurance', 'cfg'),
             $this->filesystemAcConfigService->getConfigDir($server),
         );
+    }
+
+    public function test_get_config_dir_rejects_a_server_without_a_slug(): void
+    {
+        $server = $this->createServer(withSlug: false);
+
+        $this->expectException(MissingContainerSlugException::class);
+        $this->expectExceptionMessage('Server container slug is missing');
+
+        $this->filesystemAcConfigService->getConfigDir($server);
     }
 
     /**
@@ -316,7 +327,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $this->filesystem->remove($this->serversDir);
     }
 
-    private function createServer(): Server
+    private function createServer(bool $withSlug = true): Server
     {
         $server = new Server(
             name: 'Spa Endurance',
@@ -341,7 +352,10 @@ final class FilesystemAcConfigServiceTest extends TestCase
             tcpNoDelay: true,
             registerToLobby: true,
         );
-        $server->generateContainerSlug();
+
+        if ($withSlug) {
+            $server->generateContainerSlug();
+        }
 
         return $server;
     }

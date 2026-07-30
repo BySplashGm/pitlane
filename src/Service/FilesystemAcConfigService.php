@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
+use App\Exception\MissingContainerSlugException;
 use Override;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Exception\IOException;
@@ -24,6 +25,7 @@ final readonly class FilesystemAcConfigService implements AcConfigService
 
     /**
      * @throws IOException
+     * @throws MissingContainerSlugException
      */
     #[Override]
     public function writeConfig(Server $server): void
@@ -36,6 +38,7 @@ final readonly class FilesystemAcConfigService implements AcConfigService
 
     /**
      * @throws IOException
+     * @throws MissingContainerSlugException
      */
     #[Override]
     public function deleteConfig(Server $server): void
@@ -43,10 +46,18 @@ final readonly class FilesystemAcConfigService implements AcConfigService
         $this->filesystem->remove($this->getConfigDir($server));
     }
 
+    /**
+     * @throws MissingContainerSlugException when the server has no container slug yet
+     */
     #[Override]
     public function getConfigDir(Server $server): string
     {
-        return Path::join($this->acServersDir, $server->getContainerSlug(), 'cfg');
+        $slug = $server->getContainerSlug();
+        if ('' === $slug) {
+            throw new MissingContainerSlugException();
+        }
+
+        return Path::join($this->acServersDir, $slug, 'cfg');
     }
 
     private function buildServerConfig(Server $server): string
