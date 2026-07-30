@@ -103,6 +103,29 @@ function infectionDiff(string $target = 'main'): void
     runInfection(diff: true, target: $target);
 }
 
+#[AsTask(name: 'composer:update', description: 'Update composer dependencies')]
+function composerUpdate(bool $lockUpdate = false): void
+{
+    runComposerUpdate(lockUpdate: $lockUpdate);
+}
+
+#[AsTask(name: 'composer:update-lock', description: 'Update composer.lock only')]
+function composerUpdateLock(): void
+{
+    runComposerUpdate(lockUpdate: true);
+}
+
+function runComposerUpdate(bool $lockUpdate = false): void
+{
+    run('docker compose exec app composer update'.($lockUpdate ? ' --lock' : ''));
+}
+
+#[AsTask(name: 'composer:install', description: 'Install composer dependencies')]
+function composerInstall(): void
+{
+    run('docker compose exec app composer install');
+}
+
 function runCodeQualityTools(bool $fixMode = false): void
 {
     run('docker run --rm -v "$(pwd):/workdir" davidanson/markdownlint-cli2 "docs/**/*.md"');
