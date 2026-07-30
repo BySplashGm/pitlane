@@ -153,7 +153,7 @@ function runPhpunitTestsWithCoverageCheck(bool $withCoverage = true): void
 
 function runInfection(bool $diff = false, string $target = 'main'): void
 {
-    $command = 'docker compose exec app php -d memory_limit=1G bin/infection';
+    $command = 'docker compose exec app php -d memory_limit=1G vendor/bin/infection';
 
     if ($diff) {
         $command .= sprintf(' --git-diff-lines --git-diff-base=origin/%s', $target);

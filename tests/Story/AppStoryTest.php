@@ -11,10 +11,10 @@ final class AppStoryTest extends TestCase
 {
     public function test_build_completes_without_error(): void
     {
-        $story = new AppStory();
+        $appStory = new AppStory();
 
         $this->expectNotToPerformAssertions();
 
-        $story->build();
+        $appStory->build();
     }
 }
