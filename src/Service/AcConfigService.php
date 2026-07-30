@@ -29,7 +29,7 @@ interface AcConfigService
     public function deleteConfig(Server $server): void;
 
     /**
-     * Absolute path to the server's config directory (`<acServersDir>/<slug>/cfg`).
+     * Path to the server's config directory (`<acServersDir>/<slug>/cfg`).
      *
      * @throws MissingContainerSlugException when the server has no container slug yet
      */
