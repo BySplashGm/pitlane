@@ -7,48 +7,10 @@ use Castor\Attribute\AsTask;
 use function Castor\io;
 use function Castor\run;
 
-#[AsTask(name: 'setup', description: 'Install the project: start services, install dependencies, run migrations')]
-function setup(): void
+#[AsTask(name: 'build', description: 'Build the Docker images')]
+function build(): void
 {
-    up();
-    run('composer install');
-
-    if ([] !== glob(__DIR__.'/migrations/Version*.php')) {
-        run('bin/console doctrine:migrations:migrate --no-interaction');
-    }
-
-    io()->success('Setup complete.');
-}
-
-#[AsTask(name: 'db:reset', description: 'Drop, recreate and migrate the dev and test databases from scratch')]
-function dbReset(): void
-{
-    foreach (['dev', 'test'] as $env) {
-        resetDatabase($env);
-    }
-
-    io()->success('Databases reset.');
-}
-
-function resetDatabase(string $env): void
-{
-    // Dropping the whole database (not just the schema) also wipes the migration
-    // tracking table, so migrations re-run cleanly even if a version was edited in place.
-    $console = sprintf('bin/console --env=%s ', $env);
-
-    run($console.'doctrine:database:drop --force --if-exists');
-    run($console.'doctrine:database:create');
-    run($console.'doctrine:migrations:migrate --no-interaction');
-}
-
-#[AsTask(name: 'db:migrate', description: 'Run pending migrations on the dev and test databases')]
-function dbMigrate(): void
-{
-    foreach (['dev', 'test'] as $env) {
-        run(sprintf('bin/console --env=%s doctrine:migrations:migrate --no-interaction', $env));
-    }
-
-    io()->success('Migrations applied.');
+    run('docker compose build --pull --no-cache');
 }
 
 #[AsTask(name: 'up', description: 'Start the dev services (app, database, mailer)')]
@@ -61,6 +23,18 @@ function up(): void
 function down(): void
 {
     run('docker compose down --remove-orphans');
+}
+
+#[AsTask(name: 'fixtures', description: 'Reset the database and load dev fixtures')]
+function fixtures(): void
+{
+    loadFixtures();
+}
+
+#[AsTask(name: 'fixtures:append', description: 'Load dev fixtures without resetting the database')]
+function fixturesAppend(): void
+{
+    loadFixtures(appendMode: true);
 }
 
 #[AsTask(name: 'lint', description: 'Check code style and analyze code')]
@@ -131,10 +105,12 @@ function infectionDiff(string $target = 'main'): void
 
 function runCodeQualityTools(bool $fixMode = false): void
 {
+    run('docker run --rm -v "$(pwd):/workdir" davidanson/markdownlint-cli2 "docs/**/*.md"');
+    run('docker compose exec app composer normalize'.($fixMode ? '' : ' --dry-run'));
+    run('docker compose exec app bin/console doctrine:schema:validate');
     runCsFixer($fixMode);
     runRector($fixMode);
     runPhpStan();
-    run('bin/console doctrine:schema:validate');
     runPhpunitTestsWithCoverageCheck();
     runInfection();
 
@@ -143,22 +119,27 @@ function runCodeQualityTools(bool $fixMode = false): void
 
 function runPhpStan(): void
 {
-    run('vendor/bin/phpstan analyse --memory-limit=500M');
+    run('docker compose exec app vendor/bin/phpstan analyze --memory-limit=500M');
 }
 
 function runCsFixer(bool $fixMode = false): void
 {
-    run('vendor/bin/php-cs-fixer fix'.($fixMode ? '' : ' --dry-run --diff'));
+    run('docker compose exec app vendor/bin/php-cs-fixer fix'.($fixMode ? '' : ' --dry-run --diff'));
 }
 
 function runRector(bool $fixMode = false): void
 {
-    run('vendor/bin/rector process'.($fixMode ? '' : ' --dry-run'));
+    run('docker compose exec app vendor/bin/rector process'.($fixMode ? '' : ' --dry-run'));
+}
+
+function loadFixtures(bool $appendMode = false): void
+{
+    run('docker compose exec app bin/console foundry:load-fixtures'.($appendMode ? ' --append' : '').' --no-interaction');
 }
 
 function runPhpunitTestsWithCoverageCheck(bool $withCoverage = true): void
 {
-    $command = 'vendor/bin/phpunit';
+    $command = 'docker compose exec app vendor/bin/phpunit';
     if ($withCoverage) {
         $command .= ' --coverage-text --only-summary-for-coverage-text';
     }
@@ -172,7 +153,7 @@ function runPhpunitTestsWithCoverageCheck(bool $withCoverage = true): void
 
 function runInfection(bool $diff = false, string $target = 'main'): void
 {
-    $command = 'php -d memory_limit=1G vendor/bin/infection';
+    $command = 'docker compose exec app php -d memory_limit=1G bin/infection';
 
     if ($diff) {
         $command .= sprintf(' --git-diff-lines --git-diff-base=origin/%s', $target);
