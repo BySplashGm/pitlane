@@ -30,7 +30,6 @@ final readonly class FilesystemAcConfigService implements AcConfigService
     {
         $configDir = $this->getConfigDir($server);
 
-        $this->filesystem->mkdir($configDir);
         $this->filesystem->dumpFile(Path::join($configDir, 'server_cfg.ini'), $this->buildServerConfig($server));
         $this->filesystem->dumpFile(Path::join($configDir, 'entry_list.ini'), $this->buildEntryList($server));
     }

@@ -23,3 +23,4 @@ services:
     # please note that last definitions always *replace* previous ones
     App\Repository\ServerRepository: '@App\Repository\DoctrineServerRepository'
     App\Repository\UserRepository: '@App\Repository\DoctrineUserRepository'
+    App\Service\AcConfigService: '@App\Service\FilesystemAcConfigService'
