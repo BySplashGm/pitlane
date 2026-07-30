@@ -7,6 +7,7 @@ namespace App\Tests\Service;
 use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
+use App\Exception\EmptyCarListException;
 use App\Exception\MissingContainerSlugException;
 use App\Service\FilesystemAcConfigService;
 use Override;
@@ -50,6 +51,20 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $this->expectExceptionMessage('Server container slug is missing');
 
         $this->filesystemAcConfigService->getConfigDir($server);
+    }
+
+    /**
+     * @throws IOException
+     */
+    public function test_write_config_rejects_a_server_without_any_car(): void
+    {
+        $server = $this->createServer();
+        $server->setCars([]);
+
+        $this->expectException(EmptyCarListException::class);
+        $this->expectExceptionMessage('at least one allowed car');
+
+        $this->filesystemAcConfigService->writeConfig($server);
     }
 
     /**

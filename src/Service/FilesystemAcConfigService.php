@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
+use App\Exception\EmptyCarListException;
 use App\Exception\MissingContainerSlugException;
 use Override;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -26,6 +27,7 @@ final readonly class FilesystemAcConfigService implements AcConfigService
     /**
      * @throws IOException
      * @throws MissingContainerSlugException
+     * @throws EmptyCarListException
      */
     #[Override]
     public function writeConfig(Server $server): void
@@ -115,10 +117,16 @@ final readonly class FilesystemAcConfigService implements AcConfigService
         return implode("\n\n", $sections)."\n";
     }
 
+    /**
+     * @throws EmptyCarListException
+     */
     private function buildEntryList(Server $server): string
     {
         $cars = $server->getCars();
         $carCount = \count($cars);
+        if (0 === $carCount) {
+            throw new EmptyCarListException();
+        }
 
         $sections = [];
         for ($slot = 0; $slot < $server->getMaxClients(); ++$slot) {

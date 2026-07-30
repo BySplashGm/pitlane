@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Server;
+use App\Exception\EmptyCarListException;
 use App\Exception\MissingContainerSlugException;
 use Symfony\Component\Filesystem\Exception\IOException;
 
@@ -15,6 +16,7 @@ interface AcConfigService
      *
      * @throws IOException
      * @throws MissingContainerSlugException
+     * @throws EmptyCarListException
      */
     public function writeConfig(Server $server): void;
 
