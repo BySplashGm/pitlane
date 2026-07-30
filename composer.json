@@ -1,10 +1,8 @@
 {
     "name": "bysplashgm/pitlane",
     "description": "Open-source infrastructure tool for Assetto Corsa server hosters: spin up isolated Docker containers per server, manage configs, monitor live logs and check port exposure from a single dashboard.",
-    "type": "project",
     "license": "MIT",
-    "minimum-stability": "stable",
-    "prefer-stable": true,
+    "type": "project",
     "require": {
         "php": ">=8.4",
         "ext-ctype": "*",
@@ -14,57 +12,57 @@
         "doctrine/orm": "^3.6",
         "phpdocumentor/reflection-docblock": "^6.0",
         "phpstan/phpdoc-parser": "^2.3",
-        "symfony/asset": "8.1.*",
-        "symfony/asset-mapper": "8.1.*",
-        "symfony/console": "8.1.*",
-        "symfony/doctrine-messenger": "8.1.*",
-        "symfony/dotenv": "8.1.*",
-        "symfony/expression-language": "8.1.*",
+        "symfony/asset": "~8.1.0",
+        "symfony/asset-mapper": "~8.1.0",
+        "symfony/console": "~8.1.0",
+        "symfony/doctrine-messenger": "~8.1.0",
+        "symfony/dotenv": "~8.1.0",
+        "symfony/expression-language": "~8.1.0",
         "symfony/flex": "^2",
-        "symfony/form": "8.1.*",
-        "symfony/framework-bundle": "8.1.*",
-        "symfony/http-client": "8.1.*",
-        "symfony/intl": "8.1.*",
-        "symfony/mailer": "8.1.*",
-        "symfony/mime": "8.1.*",
-        "symfony/monolog-bundle": "^3.0|^4.0",
-        "symfony/notifier": "8.1.*",
-        "symfony/process": "8.1.*",
-        "symfony/property-access": "8.1.*",
-        "symfony/property-info": "8.1.*",
-        "symfony/runtime": "8.1.*",
-        "symfony/security-bundle": "8.1.*",
-        "symfony/serializer": "8.1.*",
+        "symfony/form": "~8.1.0",
+        "symfony/framework-bundle": "~8.1.0",
+        "symfony/http-client": "~8.1.0",
+        "symfony/intl": "~8.1.0",
+        "symfony/mailer": "~8.1.0",
+        "symfony/mime": "~8.1.0",
+        "symfony/monolog-bundle": "^3.0 || ^4.0",
+        "symfony/notifier": "~8.1.0",
+        "symfony/process": "~8.1.0",
+        "symfony/property-access": "~8.1.0",
+        "symfony/property-info": "~8.1.0",
+        "symfony/runtime": "~8.1.0",
+        "symfony/security-bundle": "~8.1.0",
+        "symfony/serializer": "~8.1.0",
         "symfony/stimulus-bundle": "^3.3",
-        "symfony/string": "8.1.*",
-        "symfony/translation": "8.1.*",
-        "symfony/twig-bundle": "8.1.*",
+        "symfony/string": "~8.1.0",
+        "symfony/translation": "~8.1.0",
+        "symfony/twig-bundle": "~8.1.0",
         "symfony/ux-turbo": "^3.3",
-        "symfony/validator": "8.1.*",
-        "symfony/web-link": "8.1.*",
-        "symfony/yaml": "8.1.*",
-        "twig/extra-bundle": "^2.12|^3.0",
-        "twig/twig": "^2.12|^3.0"
+        "symfony/validator": "~8.1.0",
+        "symfony/web-link": "~8.1.0",
+        "symfony/yaml": "~8.1.0",
+        "twig/extra-bundle": "^2.12 || ^3.0",
+        "twig/twig": "^2.12 || ^3.0"
     },
-    "config": {
-        "allow-plugins": {
-            "php-http/discovery": true,
-            "symfony/flex": true,
-            "symfony/runtime": true,
-            "infection/extension-installer": true
-        },
-        "bump-after-update": true,
-        "sort-packages": true
-    },
-    "autoload": {
-        "psr-4": {
-            "App\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "App\\Tests\\": "tests/"
-        }
+    "require-dev": {
+        "ergebnis/composer-normalize": "^2.52",
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "infection/infection": "^0.34.0",
+        "jolicode/castor": "^1.6",
+        "phpstan/phpstan": "^2.2",
+        "phpstan/phpstan-doctrine": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpstan/phpstan-symfony": "^2.0",
+        "phpunit/phpunit": "^13.2",
+        "rector/rector": "^2.5",
+        "symfony/browser-kit": "~8.1.0",
+        "symfony/css-selector": "~8.1.0",
+        "symfony/debug-bundle": "~8.1.0",
+        "symfony/maker-bundle": "^1.0",
+        "symfony/stopwatch": "~8.1.0",
+        "symfony/web-profiler-bundle": "~8.1.0",
+        "zenstruck/foundry": "^2.11"
     },
     "replace": {
         "symfony/polyfill-ctype": "*",
@@ -78,27 +76,31 @@
         "symfony/polyfill-php83": "*",
         "symfony/polyfill-php84": "*"
     },
-    "scripts": {
-        "auto-scripts": {
-            "cache:clear": "symfony-cmd",
-            "assets:install %PUBLIC_DIR%": "symfony-cmd",
-            "importmap:install": "symfony-cmd"
-        },
-        "post-install-cmd": [
-            "@auto-scripts"
-        ],
-        "post-update-cmd": [
-            "@auto-scripts"
-        ],
-        "phpstan": "phpstan analyse",
-        "cs-check": "php-cs-fixer check --diff",
-        "cs-fix": "php-cs-fixer fix",
-        "rector": "rector process --dry-run",
-        "rector-fix": "rector process",
-        "infection": "infection"
-    },
     "conflict": {
         "symfony/symfony": "*"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "App\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true,
+            "infection/extension-installer": true,
+            "php-http/discovery": true,
+            "symfony/flex": true,
+            "symfony/runtime": true
+        },
+        "bump-after-update": true,
+        "sort-packages": true
     },
     "extra": {
         "symfony": {
@@ -106,22 +108,23 @@
             "require": "8.1.*"
         }
     },
-    "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.95",
-        "infection/infection": "^0.34.0",
-        "jolicode/castor": "^1.6",
-        "phpstan/phpstan": "^2.2",
-        "phpstan/phpstan-doctrine": "^2.0",
-        "phpstan/phpstan-phpunit": "^2.0",
-        "phpstan/phpstan-strict-rules": "^2.0",
-        "phpstan/phpstan-symfony": "^2.0",
-        "phpunit/phpunit": "^13.2",
-        "rector/rector": "^2.5",
-        "symfony/browser-kit": "8.1.*",
-        "symfony/css-selector": "8.1.*",
-        "symfony/debug-bundle": "8.1.*",
-        "symfony/maker-bundle": "^1.0",
-        "symfony/stopwatch": "8.1.*",
-        "symfony/web-profiler-bundle": "8.1.*"
+    "scripts": {
+        "post-install-cmd": [
+            "@auto-scripts"
+        ],
+        "post-update-cmd": [
+            "@auto-scripts"
+        ],
+        "auto-scripts": {
+            "cache:clear": "symfony-cmd",
+            "assets:install %PUBLIC_DIR%": "symfony-cmd",
+            "importmap:install": "symfony-cmd"
+        },
+        "cs-check": "php-cs-fixer check --diff",
+        "cs-fix": "php-cs-fixer fix",
+        "infection": "infection",
+        "phpstan": "phpstan analyse",
+        "rector": "rector process --dry-run",
+        "rector-fix": "rector process"
     }
 }
