@@ -26,3 +26,4 @@ services:
     App\Service\AcConfigService: '@App\Service\FilesystemAcConfigService'
     App\Service\DockerService: '@App\Service\SocketDockerService'
     App\Service\PortCheckerService: '@App\Service\SocketPortCheckerService'
+    App\Service\PortConflictService: '@App\Service\RepositoryPortConflictService'
