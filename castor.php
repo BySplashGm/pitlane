@@ -7,6 +7,15 @@ use Castor\Attribute\AsTask;
 use function Castor\io;
 use function Castor\run;
 
+#[AsTask(name: 'setup', description: 'First-run bootstrap: build images, start services, build assets, load fixtures')]
+function setup(): void
+{
+    build();
+    up();
+    run('docker compose exec app bin/console tailwind:build');
+    fixtures();
+}
+
 #[AsTask(name: 'build', description: 'Build the Docker images')]
 function build(): void
 {
