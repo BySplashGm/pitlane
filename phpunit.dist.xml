@@ -6,6 +6,7 @@
          colors="true"
          failOnDeprecation="true"
          failOnNotice="true"
+         failOnPhpunitNotice="true"
          failOnWarning="true"
          bootstrap="tests/bootstrap.php"
          cacheDirectory=".phpunit.cache"
@@ -40,6 +41,14 @@
     </source>
 
     <extensions>
-        <bootstrap class="Zenstruck\Foundry\PHPUnit\FoundryExtension" />
+        <bootstrap class="DAMA\DoctrineTestBundle\PHPUnit\PHPUnitExtension" />
+        <bootstrap class="Zenstruck\Foundry\PHPUnit\FoundryExtension">
+            <parameter name="enabled-auto-reset" value="true"/>
+        </bootstrap>
+        <bootstrap class="Ergebnis\PHPUnit\AgentReporter\Extension"/>
+        <bootstrap class="Ergebnis\PHPUnit\SlowTestDetector\Extension">
+            <parameter name="maximum-count" value="3"/>
+            <parameter name="maximum-duration" value="500"/>
+        </bootstrap>
     </extensions>
 </phpunit>
