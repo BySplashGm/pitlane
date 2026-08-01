@@ -25,3 +25,4 @@ services:
     App\Repository\UserRepository: '@App\Repository\DoctrineUserRepository'
     App\Service\AcConfigService: '@App\Service\FilesystemAcConfigService'
     App\Service\DockerService: '@App\Service\SocketDockerService'
+    App\Service\PortCheckerService: '@App\Service\SocketPortCheckerService'
