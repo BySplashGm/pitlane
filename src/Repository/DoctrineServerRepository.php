@@ -14,7 +14,9 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Server;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\Persistence\ManagerRegistry;
 use Override;
 
@@ -32,5 +34,28 @@ class DoctrineServerRepository extends ServiceEntityRepository implements Server
     public function findBySlug(string $containerSlug): ?Server
     {
         return $this->findOneBy(['containerSlug' => $containerSlug]);
+    }
+
+    #[Override]
+    public function findAllOrderedByName(): array
+    {
+        return $this->findBy([], ['name' => 'ASC']);
+    }
+
+    #[Override]
+    public function findAssignedTo(User $user): array
+    {
+        // Server has no inverse side of the assignment, so the join is expressed from the owning
+        // User association with DQL's MEMBER OF operator.
+        /** @var list<Server> $servers */
+        $servers = $this->createQueryBuilder('server')
+            ->innerJoin(User::class, 'assignee', Join::WITH, 'server MEMBER OF assignee.assignedServers')
+            ->where('assignee = :user')
+            ->setParameter('user', $user)
+            ->orderBy('server.name', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $servers;
     }
 }

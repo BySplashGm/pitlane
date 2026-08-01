@@ -132,10 +132,18 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function hasAccessTo(Server $server): bool
     {
-        if (\in_array($this->userRole, [UserRole::Owner, UserRole::Admin], true)) {
+        if ($this->hasFullServerAccess()) {
             return true;
         }
 
         return $this->assignedServers->contains($server);
+    }
+
+    /**
+     * Owner and admin see every server; operators are scoped to their assigned ones.
+     */
+    public function hasFullServerAccess(): bool
+    {
+        return \in_array($this->userRole, [UserRole::Owner, UserRole::Admin], true);
     }
 }

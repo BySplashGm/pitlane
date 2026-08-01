@@ -25,14 +25,14 @@
         {% if app.user %}
             <header class="border-b border-border bg-surface">
                 <nav class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-                    <a href="{{ path('app_home') }}" class="flex items-center gap-2 rounded-md text-lg font-semibold tracking-tight text-fg">
+                    <a href="{{ path('app_dashboard_index') }}" class="flex items-center gap-2 rounded-md text-lg font-semibold tracking-tight text-fg">
                         <span aria-hidden="true" class="inline-block h-2.5 w-2.5 rounded-full bg-brand"></span>
                         Pitlane
                     </a>
 
                     {# Desktop links #}
                     <div class="hidden items-center gap-1 sm:flex">
-                        <a href="{{ path('app_home') }}" class="rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                        <a href="{{ path('app_dashboard_index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
                             Dashboard
                         </a>
                         {# TODO(#server-crud): swap href for path('app_server_new') once the route exists. #}
@@ -72,7 +72,7 @@
 
                 {# Mobile menu panel #}
                 <div id="mobile-nav" data-nav-menu hidden class="border-t border-border px-4 py-2 sm:hidden">
-                    <a href="{{ path('app_home') }}" class="block rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                    <a href="{{ path('app_dashboard_index') }}" class="block rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
                         Dashboard
                     </a>
                     {# TODO(#server-crud): swap href for path('app_server_new') once the route exists. #}
