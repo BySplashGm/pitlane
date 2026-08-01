@@ -1,5 +1,14 @@
 <?php
 
+$header = <<<'EOF'
+    This file is part of Pitlane.
+
+    (c) Maxime Valin
+
+    For the full copyright and license information, please view the LICENSE
+    file that was distributed with this source code.
+    EOF;
+
 $finder = (new PhpCsFixer\Finder())
     ->in(__DIR__)
     ->exclude('var')
@@ -17,6 +26,12 @@ return (new PhpCsFixer\Config())
         '@Symfony:risky' => true,
         '@PHP84Migration' => true,
         'declare_strict_types' => true,
+        'header_comment' => [
+            'header' => $header,
+            'comment_type' => 'comment',
+            'location' => 'after_declare_strict',
+            'separate' => 'both',
+        ],
         'strict_param' => true,
         'strict_comparison' => true,
         'no_superfluous_elseif' => true,
