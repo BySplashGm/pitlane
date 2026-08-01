@@ -25,6 +25,12 @@ function down(): void
     run('docker compose down --remove-orphans');
 }
 
+#[AsTask(name: 'tailwind', description: 'Watch and rebuild the Tailwind CSS during development')]
+function tailwind(): void
+{
+    run('docker compose exec app bin/console tailwind:build --watch');
+}
+
 #[AsTask(name: 'fixtures', description: 'Reset the database and load dev fixtures')]
 function fixtures(): void
 {
