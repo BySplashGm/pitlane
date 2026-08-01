@@ -1,7 +1,7 @@
 {
     "name": "bysplashgm/pitlane",
     "description": "Open-source infrastructure tool for Assetto Corsa server hosters: spin up isolated Docker containers per server, manage configs, monitor live logs and check port exposure from a single dashboard.",
-    "license": "MIT",
+    "license": "AGPL-3.0-or-later",
     "type": "project",
     "require": {
         "php": ">=8.4",
