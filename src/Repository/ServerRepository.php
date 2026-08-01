@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Server;
+use App\Entity\User;
 use Doctrine\Persistence\ObjectRepository;
 
 /**
@@ -22,4 +23,18 @@ use Doctrine\Persistence\ObjectRepository;
 interface ServerRepository extends ObjectRepository
 {
     public function findBySlug(string $containerSlug): ?Server;
+
+    /**
+     * Every server, ordered by name — the set an owner or admin sees.
+     *
+     * @return list<Server>
+     */
+    public function findAllOrderedByName(): array;
+
+    /**
+     * The servers assigned to the given user, ordered by name — an operator's scoped set.
+     *
+     * @return list<Server>
+     */
+    public function findAssignedTo(User $user): array;
 }

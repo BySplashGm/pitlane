@@ -18,6 +18,7 @@ use App\Entity\User;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Enum\UserRole;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class UserTest extends TestCase
@@ -95,6 +96,24 @@ final class UserTest extends TestCase
         $user = new User('admin@pitlane.test', UserRole::Admin);
 
         self::assertTrue($user->hasAccessTo($this->createServer()));
+    }
+
+    #[DataProvider('provideFullServerAccessRoles')]
+    public function test_has_full_server_access_matches_the_role(UserRole $userRole, bool $expected): void
+    {
+        $user = new User('user@pitlane.test', $userRole);
+
+        self::assertSame($expected, $user->hasFullServerAccess());
+    }
+
+    /**
+     * @return iterable<string, array{UserRole, bool}>
+     */
+    public static function provideFullServerAccessRoles(): iterable
+    {
+        yield 'owner' => [UserRole::Owner, true];
+        yield 'admin' => [UserRole::Admin, true];
+        yield 'operator' => [UserRole::Operator, false];
     }
 
     public function test_operator_has_no_access_to_an_unassigned_server(): void

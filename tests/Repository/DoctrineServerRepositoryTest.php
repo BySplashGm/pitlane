@@ -14,8 +14,10 @@ declare(strict_types=1);
 namespace App\Tests\Repository;
 
 use App\Entity\Server;
+use App\Entity\User;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
+use App\Enum\UserRole;
 use App\Repository\DoctrineServerRepository;
 use App\Tests\Support\ResetsDatabase;
 use Doctrine\ORM\EntityManagerInterface;
@@ -39,6 +41,7 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
 
         $this->doctrineServerRepository = self::getContainer()->get(DoctrineServerRepository::class);
 
+        $this->truncateUsers($this->entityManager);
         $this->truncateServers($this->entityManager);
     }
 
@@ -61,14 +64,61 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
         self::assertSame('Spa Endurance', $reloaded->getName());
     }
 
+    public function test_find_all_ordered_by_name_returns_every_server_sorted(): void
+    {
+        $this->persistServer('Zolder Sprint', portOffset: 1);
+        $this->persistServer('Anderstorp Cup', portOffset: 2);
+        $this->persistServer('Monza Trophy', portOffset: 3);
+
+        $names = array_map(
+            static fn (Server $server): string => $server->getName(),
+            $this->doctrineServerRepository->findAllOrderedByName(),
+        );
+
+        self::assertSame(['Anderstorp Cup', 'Monza Trophy', 'Zolder Sprint'], $names);
+    }
+
+    public function test_find_assigned_to_returns_only_the_users_servers_sorted(): void
+    {
+        $zolder = $this->persistServer('Zolder Sprint', portOffset: 1);
+        $anderstorp = $this->persistServer('Anderstorp Cup', portOffset: 2);
+        $monza = $this->persistServer('Monza Trophy', portOffset: 3);
+
+        $operator = new User('operator@pitlane.test', UserRole::Operator);
+        $operator->setPassword('hashed-password');
+        $operator->assignServer($zolder);
+        $operator->assignServer($anderstorp);
+
+        // A second operator with a different assignment must not leak into the first one's result.
+        $other = new User('other@pitlane.test', UserRole::Operator);
+        $other->setPassword('hashed-password');
+        $other->assignServer($monza);
+
+        $this->entityManager->persist($operator);
+        $this->entityManager->persist($other);
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $reloaded = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'operator@pitlane.test']);
+        self::assertInstanceOf(User::class, $reloaded);
+
+        $names = array_map(
+            static fn (Server $server): string => $server->getName(),
+            $this->doctrineServerRepository->findAssignedTo($reloaded),
+        );
+
+        self::assertSame(['Anderstorp Cup', 'Zolder Sprint'], $names);
+    }
+
     #[Override]
     protected function tearDown(): void
     {
+        $this->truncateUsers($this->entityManager);
         $this->truncateServers($this->entityManager);
         parent::tearDown();
     }
 
-    private function persistServer(string $name): void
+    private function persistServer(string $name, int $portOffset = 0): Server
     {
         $server = new Server(
             name: $name,
@@ -79,9 +129,9 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
             password: '',
             adminPassword: 'admin-secret',
             maxClients: 20,
-            tcpPort: 9600,
-            udpPort: 9601,
-            httpPort: 8081,
+            tcpPort: 9600 + $portOffset,
+            udpPort: 9700 + $portOffset,
+            httpPort: 8081 + $portOffset,
             sessionType: SessionType::Race,
             sessionDuration: 60,
             durationUnit: DurationUnit::Minutes,
@@ -97,6 +147,7 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
 
         $this->entityManager->persist($server);
         $this->entityManager->flush();
-        $this->entityManager->clear();
+
+        return $server;
     }
 }
