@@ -8,7 +8,7 @@ use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Exception\MissingContainerSlugException;
-use App\Service\SocketDockerService;
+use App\Service\DockerService;
 use Closure;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +18,7 @@ use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
-final class SocketDockerServiceTest extends TestCase
+final class DockerServiceTest extends TestCase
 {
     private const string SOCKET = '/var/run/docker.sock';
 
@@ -44,11 +44,11 @@ final class SocketDockerServiceTest extends TestCase
 
     public function test_a_transport_failure_is_wrapped_in_a_runtime_exception(): void
     {
-        $socketDockerService = $this->makeService(new MockResponse('', ['error' => 'Connection refused']));
+        $dockerService = $this->makeService(new MockResponse('', ['error' => 'Connection refused']));
 
         $caught = null;
         try {
-            $socketDockerService->getContainerStatus($this->createServer());
+            $dockerService->getContainerStatus($this->createServer());
         } catch (RuntimeException $runtimeException) {
             $caught = $runtimeException;
         }
@@ -61,9 +61,9 @@ final class SocketDockerServiceTest extends TestCase
     #[DataProvider('stateMappingProvider')]
     public function test_get_container_status_maps_the_docker_state(string $inspectBody, string $expected): void
     {
-        $socketDockerService = $this->makeService(new MockResponse($inspectBody, ['http_code' => 200]));
+        $dockerService = $this->makeService(new MockResponse($inspectBody, ['http_code' => 200]));
 
-        self::assertSame($expected, $socketDockerService->getContainerStatus($this->createServer()));
+        self::assertSame($expected, $dockerService->getContainerStatus($this->createServer()));
     }
 
     /**
@@ -84,36 +84,36 @@ final class SocketDockerServiceTest extends TestCase
 
     public function test_get_container_status_treats_a_missing_container_as_stopped(): void
     {
-        $socketDockerService = $this->makeService(new MockResponse('{"message":"No such container"}', ['http_code' => 404]));
+        $dockerService = $this->makeService(new MockResponse('{"message":"No such container"}', ['http_code' => 404]));
 
-        self::assertSame('stopped', $socketDockerService->getContainerStatus($this->createServer()));
+        self::assertSame('stopped', $dockerService->getContainerStatus($this->createServer()));
     }
 
     public function test_get_container_status_throws_on_a_docker_error(): void
     {
-        $socketDockerService = $this->makeService(new MockResponse('boom', ['http_code' => 500]));
+        $dockerService = $this->makeService(new MockResponse('boom', ['http_code' => 500]));
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Docker API GET /containers/spa-endurance/json failed (HTTP 500): boom');
 
-        $socketDockerService->getContainerStatus($this->createServer());
+        $dockerService->getContainerStatus($this->createServer());
     }
 
     public function test_a_response_just_below_300_is_treated_as_success(): void
     {
-        $socketDockerService = $this->makeService(new MockResponse('{"State":{"Status":"running"}}', ['http_code' => 299]));
+        $dockerService = $this->makeService(new MockResponse('{"State":{"Status":"running"}}', ['http_code' => 299]));
 
-        self::assertSame('running', $socketDockerService->getContainerStatus($this->createServer()));
+        self::assertSame('running', $dockerService->getContainerStatus($this->createServer()));
     }
 
     public function test_a_300_response_is_treated_as_an_error(): void
     {
-        $socketDockerService = $this->makeService(new MockResponse('moved', ['http_code' => 300]));
+        $dockerService = $this->makeService(new MockResponse('moved', ['http_code' => 300]));
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('failed (HTTP 300)');
 
-        $socketDockerService->getContainerStatus($this->createServer());
+        $dockerService->getContainerStatus($this->createServer());
     }
 
     public function test_get_bulk_status_maps_every_server_by_container_name(): void
@@ -189,11 +189,11 @@ final class SocketDockerServiceTest extends TestCase
 
     public function test_start_throws_when_inspecting_the_container_fails(): void
     {
-        $socketDockerService = $this->makeService(new MockResponse('nope', ['http_code' => 500]));
+        $dockerService = $this->makeService(new MockResponse('nope', ['http_code' => 500]));
 
         $this->expectException(RuntimeException::class);
 
-        $socketDockerService->startServer($this->createServer());
+        $dockerService->startServer($this->createServer());
     }
 
     public function test_stop_posts_to_the_stop_endpoint(): void
@@ -262,9 +262,9 @@ final class SocketDockerServiceTest extends TestCase
 
     public function test_get_logs_returns_an_empty_string_without_output(): void
     {
-        $socketDockerService = $this->makeService(new MockResponse('', ['http_code' => 200]));
+        $dockerService = $this->makeService(new MockResponse('', ['http_code' => 200]));
 
-        self::assertSame('', $socketDockerService->getLogs($this->createServer()));
+        self::assertSame('', $dockerService->getLogs($this->createServer()));
     }
 
     #[DataProvider('slugRequiringCallProvider')]
@@ -282,17 +282,17 @@ final class SocketDockerServiceTest extends TestCase
      */
     public static function slugRequiringCallProvider(): iterable
     {
-        yield 'status' => [static function (SocketDockerService $socketDockerService, Server $server): void { $socketDockerService->getContainerStatus($server); }];
-        yield 'start' => [static function (SocketDockerService $socketDockerService, Server $server): void { $socketDockerService->startServer($server); }];
-        yield 'stop' => [static function (SocketDockerService $socketDockerService, Server $server): void { $socketDockerService->stopServer($server); }];
-        yield 'restart' => [static function (SocketDockerService $socketDockerService, Server $server): void { $socketDockerService->restartServer($server); }];
-        yield 'remove' => [static function (SocketDockerService $socketDockerService, Server $server): void { $socketDockerService->removeContainer($server); }];
-        yield 'logs' => [static function (SocketDockerService $socketDockerService, Server $server): void { $socketDockerService->getLogs($server); }];
+        yield 'status' => [static function (DockerService $dockerService, Server $server): void { $dockerService->getContainerStatus($server); }];
+        yield 'start' => [static function (DockerService $dockerService, Server $server): void { $dockerService->startServer($server); }];
+        yield 'stop' => [static function (DockerService $dockerService, Server $server): void { $dockerService->stopServer($server); }];
+        yield 'restart' => [static function (DockerService $dockerService, Server $server): void { $dockerService->restartServer($server); }];
+        yield 'remove' => [static function (DockerService $dockerService, Server $server): void { $dockerService->removeContainer($server); }];
+        yield 'logs' => [static function (DockerService $dockerService, Server $server): void { $dockerService->getLogs($server); }];
     }
 
-    private function makeService(MockResponse ...$responses): SocketDockerService
+    private function makeService(MockResponse ...$responses): DockerService
     {
-        return new SocketDockerService(
+        return new DockerService(
             new MockHttpClient($responses),
             self::SOCKET,
             self::NETWORK,

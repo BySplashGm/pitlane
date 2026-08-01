@@ -7,7 +7,7 @@ namespace App\Tests\Service;
 use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
-use App\Service\SocketPortCheckerService;
+use App\Service\PortCheckerService;
 use InvalidArgumentException;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -16,7 +16,7 @@ use RuntimeException;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
-final class SocketPortCheckerServiceTest extends TestCase
+final class PortCheckerServiceTest extends TestCase
 {
     /**
      * @var array<int, resource>
@@ -82,11 +82,11 @@ final class SocketPortCheckerServiceTest extends TestCase
 
     public function test_get_public_ip_wraps_a_client_failure_in_a_runtime_exception(): void
     {
-        $socketPortCheckerService = $this->makeService(new MockResponse('', ['error' => 'Connection refused']));
+        $portCheckerService = $this->makeService(new MockResponse('', ['error' => 'Connection refused']));
 
         $caught = null;
         try {
-            $socketPortCheckerService->getPublicIp();
+            $portCheckerService->getPublicIp();
         } catch (RuntimeException $runtimeException) {
             $caught = $runtimeException;
         }
@@ -116,9 +116,9 @@ final class SocketPortCheckerServiceTest extends TestCase
         $this->closeSockets();
     }
 
-    private function makeService(MockResponse ...$responses): SocketPortCheckerService
+    private function makeService(MockResponse ...$responses): PortCheckerService
     {
-        return new SocketPortCheckerService(new MockHttpClient($responses));
+        return new PortCheckerService(new MockHttpClient($responses));
     }
 
     private function openTcpServer(string $ip = '127.0.0.1'): int

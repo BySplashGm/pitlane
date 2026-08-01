@@ -9,7 +9,7 @@ use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Exception\EmptyCarListException;
 use App\Exception\MissingContainerSlugException;
-use App\Service\FilesystemAcConfigService;
+use App\Service\AcConfigService;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -17,20 +17,20 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 
-final class FilesystemAcConfigServiceTest extends TestCase
+final class AcConfigServiceTest extends TestCase
 {
     private Filesystem $filesystem;
 
     private string $serversDir;
 
-    private FilesystemAcConfigService $filesystemAcConfigService;
+    private AcConfigService $acConfigService;
 
     #[Override]
     protected function setUp(): void
     {
         $this->filesystem = new Filesystem();
         $this->serversDir = Path::join(sys_get_temp_dir(), uniqid('pitlane-ac-config-', true));
-        $this->filesystemAcConfigService = new FilesystemAcConfigService($this->filesystem, $this->serversDir);
+        $this->acConfigService = new AcConfigService($this->filesystem, $this->serversDir);
     }
 
     public function test_get_config_dir_builds_path_from_slug(): void
@@ -39,7 +39,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
 
         self::assertSame(
             Path::join($this->serversDir, 'spa-endurance', 'cfg'),
-            $this->filesystemAcConfigService->getConfigDir($server),
+            $this->acConfigService->getConfigDir($server),
         );
     }
 
@@ -50,7 +50,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $this->expectException(MissingContainerSlugException::class);
         $this->expectExceptionMessage('Server container slug is missing');
 
-        $this->filesystemAcConfigService->getConfigDir($server);
+        $this->acConfigService->getConfigDir($server);
     }
 
     /**
@@ -64,7 +64,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $this->expectException(EmptyCarListException::class);
         $this->expectExceptionMessage('at least one allowed car');
 
-        $this->filesystemAcConfigService->writeConfig($server);
+        $this->acConfigService->writeConfig($server);
     }
 
     /**
@@ -74,9 +74,9 @@ final class FilesystemAcConfigServiceTest extends TestCase
     {
         $server = $this->createServer();
 
-        $this->filesystemAcConfigService->writeConfig($server);
+        $this->acConfigService->writeConfig($server);
 
-        $configDir = $this->filesystemAcConfigService->getConfigDir($server);
+        $configDir = $this->acConfigService->getConfigDir($server);
         self::assertDirectoryExists($configDir);
         self::assertFileExists(Path::join($configDir, 'server_cfg.ini'));
         self::assertFileExists(Path::join($configDir, 'entry_list.ini'));
@@ -89,7 +89,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
     {
         $server = $this->createServer();
 
-        $this->filesystemAcConfigService->writeConfig($server);
+        $this->acConfigService->writeConfig($server);
 
         $expected = <<<'INI'
             [SERVER]
@@ -138,7 +138,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $server = $this->createServer();
         $server->setSessionType($sessionType);
 
-        $this->filesystemAcConfigService->writeConfig($server);
+        $this->acConfigService->writeConfig($server);
 
         self::assertStringContainsString($expectedSection, $this->readConfigFile($server, 'server_cfg.ini'));
     }
@@ -164,7 +164,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $server = $this->createServer();
         $server->setDurationUnit($durationUnit);
 
-        $this->filesystemAcConfigService->writeConfig($server);
+        $this->acConfigService->writeConfig($server);
 
         self::assertStringContainsString($expectedLine, $this->readConfigFile($server, 'server_cfg.ini'));
     }
@@ -189,7 +189,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $server = $this->createServer();
         $server->setDynamicTrack($dynamicTrack);
 
-        $this->filesystemAcConfigService->writeConfig($server);
+        $this->acConfigService->writeConfig($server);
 
         self::assertStringContainsString($expectedSection, $this->readConfigFile($server, 'server_cfg.ini'));
     }
@@ -216,7 +216,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $server->setAmbientTemp($ambientTemp);
         $server->setTrackTemp($trackTemp);
 
-        $this->filesystemAcConfigService->writeConfig($server);
+        $this->acConfigService->writeConfig($server);
 
         self::assertStringContainsString(
             \sprintf(
@@ -251,7 +251,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $server->setRegisterToLobby($registerToLobby);
         $server->setTcpNoDelay($tcpNoDelay);
 
-        $this->filesystemAcConfigService->writeConfig($server);
+        $this->acConfigService->writeConfig($server);
 
         $serverCfg = $this->readConfigFile($server, 'server_cfg.ini');
         self::assertStringContainsString($expectedRegisterLine, $serverCfg);
@@ -275,7 +275,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $server = $this->createServer();
         $server->setTrackLayout('gp');
 
-        $this->filesystemAcConfigService->writeConfig($server);
+        $this->acConfigService->writeConfig($server);
 
         self::assertStringContainsString("\nCONFIG_TRACK=gp\n", $this->readConfigFile($server, 'server_cfg.ini'));
     }
@@ -289,7 +289,7 @@ final class FilesystemAcConfigServiceTest extends TestCase
         $server->setCars(['ks_ferrari_488_gt3', 'ks_bmw_z4_gt3']);
         $server->setMaxClients(3);
 
-        $this->filesystemAcConfigService->writeConfig($server);
+        $this->acConfigService->writeConfig($server);
 
         $expected = <<<'INI'
             [CAR_0]
@@ -327,11 +327,11 @@ final class FilesystemAcConfigServiceTest extends TestCase
     public function test_delete_config_removes_the_directory(): void
     {
         $server = $this->createServer();
-        $this->filesystemAcConfigService->writeConfig($server);
-        $configDir = $this->filesystemAcConfigService->getConfigDir($server);
+        $this->acConfigService->writeConfig($server);
+        $configDir = $this->acConfigService->getConfigDir($server);
         self::assertDirectoryExists($configDir);
 
-        $this->filesystemAcConfigService->deleteConfig($server);
+        $this->acConfigService->deleteConfig($server);
 
         self::assertDirectoryDoesNotExist($configDir);
     }
@@ -380,6 +380,6 @@ final class FilesystemAcConfigServiceTest extends TestCase
      */
     private function readConfigFile(Server $server, string $fileName): string
     {
-        return $this->filesystem->readFile(Path::join($this->filesystemAcConfigService->getConfigDir($server), $fileName));
+        return $this->filesystem->readFile(Path::join($this->acConfigService->getConfigDir($server), $fileName));
     }
 }

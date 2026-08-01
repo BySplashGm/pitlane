@@ -27,7 +27,7 @@ Document propagated checked exceptions with `@throws`, in tests as well as sourc
 
 - **Default to `final`.** Drop `final` only where inheritance is a deliberate requirement — an abstract test base, or a Doctrine repository extending `ServiceEntityRepository`.
 - **Default to `readonly`.** Mark every property that isn't meant to change; when they all qualify, make the whole class `readonly` (services, voters, handlers and value objects usually can).
-- **Program to interfaces.** Give each service and repository an interface and depend on that, never the concrete type. The interface takes the bare name (`UserRepository`); the implementation is named for how it works (`DoctrineUserRepository`), and only picks up a distinguishing qualifier once a second implementation exists.
+- **Program to interfaces.** Give each service an interface and depend on that, never the concrete type. While a service has a single implementation, the interface carries the `Interface` suffix (`DockerServiceInterface`) and the implementation takes the bare name (`DockerService`). Only once a second implementation lands do you rename each one for how it works (`SocketDockerService`, `RemoteDockerService`) and let the interface keep the bare concept name. Repositories are the exception — they follow their own naming rule (see `persistence.md`).
 
 ## Console Commands
 
