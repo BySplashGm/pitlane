@@ -35,13 +35,34 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
 
     public function test_find_by_slug_returns_null_when_no_server_matches(): void
     {
+        // A server with a different slug is present so the finder must filter on the slug,
+        // not just return the first row it finds.
+        $this->persistServer('Spa Endurance');
+
         self::assertNull($this->doctrineServerRepository->findBySlug('unknown-slug'));
     }
 
     public function test_find_by_slug_returns_the_matching_server(): void
     {
+        $this->persistServer('Spa Endurance');
+
+        $reloaded = $this->doctrineServerRepository->findBySlug('spa-endurance');
+
+        self::assertInstanceOf(Server::class, $reloaded);
+        self::assertSame('Spa Endurance', $reloaded->getName());
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        $this->truncateServers($this->entityManager);
+        parent::tearDown();
+    }
+
+    private function persistServer(string $name): void
+    {
         $server = new Server(
-            name: 'Spa Endurance',
+            name: $name,
             serverName: 'Pitlane - Spa Endurance',
             track: 'spa',
             trackLayout: null,
@@ -68,17 +89,5 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
         $this->entityManager->persist($server);
         $this->entityManager->flush();
         $this->entityManager->clear();
-
-        $reloaded = $this->doctrineServerRepository->findBySlug('spa-endurance');
-
-        self::assertInstanceOf(Server::class, $reloaded);
-        self::assertSame('Spa Endurance', $reloaded->getName());
-    }
-
-    #[Override]
-    protected function tearDown(): void
-    {
-        $this->truncateServers($this->entityManager);
-        parent::tearDown();
     }
 }

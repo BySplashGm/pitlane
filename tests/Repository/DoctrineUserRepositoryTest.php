@@ -36,6 +36,14 @@ final class DoctrineUserRepositoryTest extends KernelTestCase
 
     public function test_owner_exists_is_false_when_no_owner(): void
     {
+        // A non-owner user is present so the finder must filter on the owner role, not just
+        // return the first row it finds.
+        $user = new User('admin@pitlane.test', UserRole::Admin);
+        $user->setPassword('hashed-password');
+
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+
         self::assertFalse($this->doctrineUserRepository->ownerExists());
     }
 
@@ -52,16 +60,15 @@ final class DoctrineUserRepositoryTest extends KernelTestCase
 
     public function test_upgrade_password_persists_the_new_hash(): void
     {
+        // The user is never persisted beforehand, so upgradePassword must itself persist it
+        // for the new hash to reach the database.
         $user = new User('admin@pitlane.test', UserRole::Admin);
         $user->setPassword('old-hash');
-
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
 
         $this->doctrineUserRepository->upgradePassword($user, 'new-hash');
         $this->entityManager->clear();
 
-        $reloaded = $this->doctrineUserRepository->find($user->getId());
+        $reloaded = $this->doctrineUserRepository->findOneBy(['email' => 'admin@pitlane.test']);
         self::assertInstanceOf(User::class, $reloaded);
         self::assertSame('new-hash', $reloaded->getPassword());
     }
