@@ -28,10 +28,11 @@ final readonly class SocketPortCheckerService implements PortCheckerService
     #[Override]
     public function checkPort(string $ip, int $port, string $protocol = 'tcp'): bool
     {
-        // Whitelist the scheme: it is interpolated into the socket address, so an unexpected
-        // value must never reach stream_socket_client() and reinterpret the target.
-        if ('tcp' !== $protocol && 'udp' !== $protocol) {
-            throw new InvalidArgumentException(\sprintf('Unsupported protocol "%s"; expected "tcp" or "udp".', $protocol));
+        // Only TCP is probed: a UDP "connect" completes without a handshake, so it would report an
+        // unreachable port as open. Whitelisting the scheme also keeps an unexpected value from being
+        // interpolated into the socket address and reinterpreting the target.
+        if ('tcp' !== $protocol) {
+            throw new InvalidArgumentException(\sprintf('Unsupported protocol "%s"; only "tcp" is checkable.', $protocol));
         }
 
         // STREAM_CLIENT_CONNECT plus the explicit timeout guarantee the call cannot block past

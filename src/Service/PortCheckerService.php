@@ -13,11 +13,12 @@ interface PortCheckerService
     /**
      * Attempts a connection to the given port with a strict timeout and never hangs.
      *
-     * @param string $protocol transport scheme to probe with; only `tcp` or `udp` are accepted
+     * @param string $protocol transport scheme to probe with; only `tcp` is checkable — a UDP
+     *                         probe cannot tell an open port from a closed one
      *
      * @return bool true when the connection succeeds within the timeout, false otherwise
      *
-     * @throws InvalidArgumentException when $protocol is neither `tcp` nor `udp`
+     * @throws InvalidArgumentException when $protocol is not `tcp`
      */
     public function checkPort(string $ip, int $port, string $protocol = 'tcp'): bool;
 

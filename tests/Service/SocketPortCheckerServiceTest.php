@@ -10,6 +10,7 @@ use App\Enum\SessionType;
 use App\Service\SocketPortCheckerService;
 use InvalidArgumentException;
 use Override;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -29,13 +30,6 @@ final class SocketPortCheckerServiceTest extends TestCase
         self::assertTrue($this->makeService()->checkPort('127.0.0.1', $port));
     }
 
-    public function test_check_port_returns_true_for_a_reachable_udp_port(): void
-    {
-        $port = $this->openUdpServer();
-
-        self::assertTrue($this->makeService()->checkPort('127.0.0.1', $port, 'udp'));
-    }
-
     public function test_check_port_returns_false_for_a_closed_port(): void
     {
         $port = $this->openTcpServer();
@@ -44,12 +38,22 @@ final class SocketPortCheckerServiceTest extends TestCase
         self::assertFalse($this->makeService()->checkPort('127.0.0.1', $port));
     }
 
-    public function test_check_port_rejects_an_unsupported_protocol(): void
+    #[DataProvider('unsupportedProtocolProvider')]
+    public function test_check_port_rejects_an_unsupported_protocol(string $protocol): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unsupported protocol "sctp"; expected "tcp" or "udp".');
+        $this->expectExceptionMessage(\sprintf('Unsupported protocol "%s"; only "tcp" is checkable.', $protocol));
 
-        $this->makeService()->checkPort('127.0.0.1', 9600, 'sctp');
+        $this->makeService()->checkPort('127.0.0.1', 9600, $protocol);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function unsupportedProtocolProvider(): iterable
+    {
+        yield 'udp is not checkable' => ['udp'];
+        yield 'unknown scheme' => ['sctp'];
     }
 
     public function test_get_public_ip_returns_the_trimmed_resolver_body(): void
@@ -105,11 +109,6 @@ final class SocketPortCheckerServiceTest extends TestCase
     private function openTcpServer(): int
     {
         return $this->bindServer('tcp://127.0.0.1:0', \STREAM_SERVER_BIND | \STREAM_SERVER_LISTEN);
-    }
-
-    private function openUdpServer(): int
-    {
-        return $this->bindServer('udp://127.0.0.1:0', \STREAM_SERVER_BIND);
     }
 
     private function bindServer(string $address, int $flags): int
