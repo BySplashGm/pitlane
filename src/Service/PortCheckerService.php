@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Server;
+use InvalidArgumentException;
 use RuntimeException;
 
 interface PortCheckerService
@@ -12,9 +13,11 @@ interface PortCheckerService
     /**
      * Attempts a connection to the given port with a strict timeout and never hangs.
      *
-     * @param 'tcp'|'udp' $protocol transport scheme to probe with
+     * @param string $protocol transport scheme to probe with; only `tcp` or `udp` are accepted
      *
      * @return bool true when the connection succeeds within the timeout, false otherwise
+     *
+     * @throws InvalidArgumentException when $protocol is neither `tcp` nor `udp`
      */
     public function checkPort(string $ip, int $port, string $protocol = 'tcp'): bool;
 
