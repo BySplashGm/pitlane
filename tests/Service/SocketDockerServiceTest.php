@@ -16,6 +16,7 @@ use ReflectionProperty;
 use RuntimeException;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
 final class SocketDockerServiceTest extends TestCase
 {
@@ -33,7 +34,28 @@ final class SocketDockerServiceTest extends TestCase
 
         self::assertSame('GET', $mockResponse->getRequestMethod());
         self::assertSame('http://docker/containers/spa-endurance/json', $mockResponse->getRequestUrl());
-        self::assertSame(self::SOCKET, $mockResponse->getRequestOptions()['bindto']);
+
+        $extraOptions = $mockResponse->getRequestOptions()['extra'];
+        self::assertIsArray($extraOptions);
+        $curlOptions = $extraOptions['curl'];
+        self::assertIsArray($curlOptions);
+        self::assertSame(self::SOCKET, $curlOptions[\CURLOPT_UNIX_SOCKET_PATH]);
+    }
+
+    public function test_a_transport_failure_is_wrapped_in_a_runtime_exception(): void
+    {
+        $socketDockerService = $this->makeService(new MockResponse('', ['error' => 'Connection refused']));
+
+        $caught = null;
+        try {
+            $socketDockerService->getContainerStatus($this->createServer());
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
+        }
+
+        self::assertInstanceOf(RuntimeException::class, $caught);
+        self::assertSame('Docker API GET /containers/spa-endurance/json failed (transport error): Connection refused', $caught->getMessage());
+        self::assertInstanceOf(TransportExceptionInterface::class, $caught->getPrevious());
     }
 
     #[DataProvider('stateMappingProvider')]

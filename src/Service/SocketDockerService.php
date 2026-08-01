@@ -11,6 +11,7 @@ use RuntimeException;
 use stdClass;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Path;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
@@ -156,17 +157,25 @@ final readonly class SocketDockerService implements DockerService
      */
     private function request(string $method, string $path, ?array $body = null, ?int $allowedStatusCode = null): ResponseInterface
     {
-        // No 'throw' option: getStatusCode() never throws, so status is inspected directly and the
-        // failure message reads the body with an explicit throw=false to avoid Symfony's own exception.
-        $options = ['bindto' => $this->dockerSocket];
+        // The daemon speaks HTTP over the mounted Unix socket, reached through cURL's dedicated
+        // CURLOPT_UNIX_SOCKET_PATH; the local-interface 'bindto' option cannot address a socket file.
+        // No 'throw' option: HTTP error codes are inspected directly (getStatusCode() only throws on
+        // transport failure, and the body is read with throw=false), so we wrap transport errors ourselves.
+        $options = ['extra' => ['curl' => [\CURLOPT_UNIX_SOCKET_PATH => $this->dockerSocket]]];
         if (null !== $body) {
             $options['json'] = $body;
         }
 
-        $response = $this->httpClient->request($method, \sprintf('%s%s', self::BASE_URI, $path), $options);
-        $statusCode = $response->getStatusCode();
+        try {
+            $response = $this->httpClient->request($method, \sprintf('%s%s', self::BASE_URI, $path), $options);
+            $statusCode = $response->getStatusCode();
+        } catch (TransportExceptionInterface $transportException) {
+            throw new RuntimeException(\sprintf('Docker API %s %s failed (transport error): %s', $method, $path, $transportException->getMessage()), $transportException->getCode(), previous: $transportException);
+        }
 
         if ($statusCode >= 300 && $statusCode !== $allowedStatusCode) {
+            // getStatusCode() above already fully resolved the response, so reading the buffered body
+            // with throw=false cannot raise a fresh transport error here.
             throw new RuntimeException(\sprintf('Docker API %s %s failed (HTTP %d): %s', $method, $path, $statusCode, $response->getContent(false)));
         }
 
