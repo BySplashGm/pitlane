@@ -21,10 +21,11 @@ Dependency versions are whatever `composer.json` declares — read it there rath
 
 Task automation goes through Castor:
 
-- `castor setup` — first-run bootstrap (services + schema)
+- `castor setup` — first-run bootstrap (build images, start services, build assets, load fixtures)
 - `castor up` / `castor down` — start / tear down the dev stack
-- `castor db:reset` — drop, recreate and migrate the dev + test databases
-- `castor db:migrate` — run pending migrations on the dev + test databases without dropping them
+- `castor build` — rebuild the Docker images from scratch
+- `castor tailwind` — watch and rebuild the Tailwind CSS during development
+- `castor fixtures` — reset the database and load dev fixtures; `castor fixtures:append` loads without resetting
 - `castor lint` — run CS Fixer, Rector and PHPStan (max) in check mode
 - `castor lint:fix` — same, auto-fixing CS Fixer and Rector (PHPStan stays read-only)
 - `castor phpstan` / `castor cs` / `castor rector` — run one tool on its own (each has a `:fix` variant where fixing applies)
