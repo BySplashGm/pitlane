@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+/*
+ * Class-based dark mode: dark styles apply when <html> (or an ancestor)
+ * carries the `dark` class, instead of following the OS preference.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+    body {
+        @apply bg-slate-950 text-slate-100 antialiased;
+    }
+}
