@@ -14,7 +14,6 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Validator\Constraints\Email;
@@ -48,16 +47,17 @@ final class CreateOwnerCommand extends Command
             return Command::FAILURE;
         }
 
-        $emailQuestion = new Question('Owner email');
-        $emailQuestion->setValidator(fn (mixed $answer): string => $this->validateAnswer($answer, [new NotBlank(), new Email()]));
+        $email = $symfonyStyle->ask(
+            'Owner email',
+            validator: fn (mixed $answer): string => $this->validateAnswer($answer, [new NotBlank(), new Email()]),
+        );
+        \assert(\is_string($email));
 
-        $email = $this->askString($symfonyStyle, $emailQuestion);
-
-        $passwordQuestion = new Question('Owner password');
-        $passwordQuestion->setHidden(true);
-        $passwordQuestion->setValidator(fn (mixed $answer): string => $this->validateAnswer($answer, [new NotBlank(), new Length(min: 8)]));
-
-        $password = $this->askString($symfonyStyle, $passwordQuestion);
+        $password = $symfonyStyle->askHidden(
+            'Owner password',
+            fn (mixed $answer): string => $this->validateAnswer($answer, [new Length(min: 8)]),
+        );
+        \assert(\is_string($password));
 
         $user = new User($email, UserRole::Owner);
         $user->setPassword($this->userPasswordHasher->hashPassword($user, $password));
@@ -81,14 +81,6 @@ final class CreateOwnerCommand extends Command
         if (\count($constraintViolationList) > 0) {
             throw new InvalidArgumentException((string) $constraintViolationList->get(0)->getMessage());
         }
-
-        return $answer;
-    }
-
-    private function askString(SymfonyStyle $symfonyStyle, Question $question): string
-    {
-        $answer = $symfonyStyle->askQuestion($question);
-        \assert(\is_string($answer));
 
         return $answer;
     }

@@ -35,13 +35,21 @@ final class CreateOwnerCommandTest extends KernelTestCase
     {
         $commandTester = $this->commandTester();
 
-        // The first answer to each question is invalid and must be re-asked before the valid one is accepted.
-        $commandTester->setInputs(['not-an-email', 'owner@pitlane.test', 'short', 'a-strong-password']);
+        // Each question is fed invalid answers first: a blank then a malformed email, and a
+        // seven-character (too short) password, all of which must be rejected and re-asked
+        // before the trailing valid answer is accepted.
+        $commandTester->setInputs(['', 'not-an-email', 'owner@pitlane.test', '1234567', 'passw0rd']);
 
         $exitCode = $commandTester->execute([]);
 
         self::assertSame(0, $exitCode);
-        self::assertStringContainsString('Owner account "owner@pitlane.test" created.', $commandTester->getDisplay());
+
+        $display = $commandTester->getDisplay();
+        // The surfaced violation messages prove the first (offset 0) violation is reported.
+        self::assertStringContainsString('This value should not be blank.', $display);
+        self::assertStringContainsString('This value is not a valid email address.', $display);
+        self::assertStringContainsString('This value is too short.', $display);
+        self::assertStringContainsString('Owner account "owner@pitlane.test" created.', $display);
 
         $userRepository = self::getContainer()->get(UserRepository::class);
         $owner = $userRepository->findOneBy(['email' => 'owner@pitlane.test']);
@@ -49,7 +57,7 @@ final class CreateOwnerCommandTest extends KernelTestCase
         self::assertSame(UserRole::Owner, $owner->getRole());
 
         $hasher = self::getContainer()->get(UserPasswordHasherInterface::class);
-        self::assertTrue($hasher->isPasswordValid($owner, 'a-strong-password'));
+        self::assertTrue($hasher->isPasswordValid($owner, 'passw0rd'));
     }
 
     public function test_it_refuses_to_create_a_second_owner(): void
