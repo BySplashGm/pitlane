@@ -23,19 +23,30 @@ final class SocketPortCheckerServiceTest extends TestCase
      */
     private array $openSockets = [];
 
-    public function test_check_port_returns_true_for_a_reachable_tcp_port(): void
+    #[DataProvider('loopbackAddressProvider')]
+    public function test_check_port_returns_true_for_a_reachable_tcp_port(string $ip): void
     {
-        $port = $this->openTcpServer();
+        $port = $this->openTcpServer($ip);
 
-        self::assertTrue($this->makeService()->checkPort('127.0.0.1', $port));
+        self::assertTrue($this->makeService()->checkPort($ip, $port));
     }
 
-    public function test_check_port_returns_false_for_a_closed_port(): void
+    #[DataProvider('loopbackAddressProvider')]
+    public function test_check_port_returns_false_for_a_closed_port(string $ip): void
     {
-        $port = $this->openTcpServer();
+        $port = $this->openTcpServer($ip);
         $this->closeSockets();
 
-        self::assertFalse($this->makeService()->checkPort('127.0.0.1', $port));
+        self::assertFalse($this->makeService()->checkPort($ip, $port));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function loopbackAddressProvider(): iterable
+    {
+        yield 'ipv4' => ['127.0.0.1'];
+        yield 'ipv6' => ['::1'];
     }
 
     #[DataProvider('unsupportedProtocolProvider')]
@@ -63,6 +74,10 @@ final class SocketPortCheckerServiceTest extends TestCase
         self::assertSame('203.0.113.7', $this->makeService($mockResponse)->getPublicIp());
         self::assertSame('GET', $mockResponse->getRequestMethod());
         self::assertSame('https://api.ipify.org/', $mockResponse->getRequestUrl());
+
+        $requestOptions = $mockResponse->getRequestOptions();
+        self::assertSame(5.0, $requestOptions['timeout']);
+        self::assertSame(5.0, $requestOptions['max_duration']);
     }
 
     public function test_get_public_ip_wraps_a_client_failure_in_a_runtime_exception(): void
@@ -106,9 +121,11 @@ final class SocketPortCheckerServiceTest extends TestCase
         return new SocketPortCheckerService(new MockHttpClient($responses));
     }
 
-    private function openTcpServer(): int
+    private function openTcpServer(string $ip = '127.0.0.1'): int
     {
-        return $this->bindServer('tcp://127.0.0.1:0', \STREAM_SERVER_BIND | \STREAM_SERVER_LISTEN);
+        $host = str_contains($ip, ':') ? \sprintf('[%s]', $ip) : $ip;
+
+        return $this->bindServer(\sprintf('tcp://%s:0', $host), \STREAM_SERVER_BIND | \STREAM_SERVER_LISTEN);
     }
 
     private function bindServer(string $address, int $flags): int

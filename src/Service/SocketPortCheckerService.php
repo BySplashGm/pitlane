@@ -17,6 +17,8 @@ final readonly class SocketPortCheckerService implements PortCheckerService
 
     private const float TIMEOUT_SECONDS = 2.0;
 
+    private const float RESOLVER_TIMEOUT_SECONDS = 5.0;
+
     public function __construct(
         private HttpClientInterface $httpClient,
     ) {
@@ -35,10 +37,14 @@ final readonly class SocketPortCheckerService implements PortCheckerService
             throw new InvalidArgumentException(\sprintf('Unsupported protocol "%s"; only "tcp" is checkable.', $protocol));
         }
 
+        // IPv6 literals must be bracketed before they go into the address, otherwise their colons
+        // collide with the host:port separator and stream_socket_client() rejects the target.
+        $host = false !== filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6) ? \sprintf('[%s]', $ip) : $ip;
+
         // STREAM_CLIENT_CONNECT plus the explicit timeout guarantee the call cannot block past
         // TIMEOUT_SECONDS; a failed connection surfaces as a false return, which we normalise.
         $stream = @stream_socket_client(
-            \sprintf('%s://%s:%d', $protocol, $ip, $port),
+            \sprintf('%s://%s:%d', $protocol, $host, $port),
             $errorCode,
             $errorMessage,
             self::TIMEOUT_SECONDS,
@@ -76,7 +82,14 @@ final readonly class SocketPortCheckerService implements PortCheckerService
     public function getPublicIp(): string
     {
         try {
-            return trim($this->httpClient->request('GET', self::PUBLIC_IP_RESOLVER)->getContent());
+            // Cap both the idle timeout and the total duration so a slow or unresponsive resolver
+            // cannot stall the reachability check for the HttpClient's ~60s defaults.
+            $response = $this->httpClient->request('GET', self::PUBLIC_IP_RESOLVER, [
+                'timeout' => self::RESOLVER_TIMEOUT_SECONDS,
+                'max_duration' => self::RESOLVER_TIMEOUT_SECONDS,
+            ]);
+
+            return trim($response->getContent());
         } catch (HttpClientExceptionInterface $httpClientException) {
             throw new RuntimeException(\sprintf('Unable to resolve the host public IP: %s', $httpClientException->getMessage()), $httpClientException->getCode(), previous: $httpClientException);
         }
