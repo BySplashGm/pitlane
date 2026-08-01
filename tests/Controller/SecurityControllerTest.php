@@ -94,8 +94,9 @@ final class SecurityControllerTest extends WebTestCase
         $user = $this->createUser('admin@pitlane.test', 'correct-password', UserRole::Admin);
         $kernelBrowser->loginUser($user);
 
-        // The same-origin CSRF check relies on the Referer header, which a real browser always sends.
-        $kernelBrowser->request('GET', '/logout', ['_csrf_token' => 'test'], [], ['HTTP_REFERER' => 'http://localhost/']);
+        // Submit the navbar logout form so the CSRF-protected POST carries a valid token.
+        $crawler = $kernelBrowser->request('GET', '/');
+        $kernelBrowser->submit($crawler->selectButton('Sign out')->form());
 
         self::assertResponseRedirects('/login');
 

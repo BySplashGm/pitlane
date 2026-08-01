@@ -37,29 +37,32 @@
                         </a>
                         {# TODO(#server-crud): swap href for path('app_server_new') once the route exists. #}
                         <a href="#" aria-disabled="true" tabindex="-1" class="pointer-events-none rounded-md px-3 py-2 text-sm font-medium text-muted opacity-50">
-                            Nouveau serveur
+                            New server
                         </a>
                     </div>
 
                     <div class="flex items-center gap-2">
                         {# User dropdown #}
                         <div class="relative" data-dropdown>
-                            <button type="button" data-dropdown-trigger aria-haspopup="menu" aria-expanded="false" class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                            <button type="button" id="user-menu-trigger" data-dropdown-trigger aria-haspopup="true" aria-controls="user-menu" aria-expanded="false" class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
                                 <span class="max-w-40 truncate">{{ app.user.userIdentifier }}</span>
                                 <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
                                 </svg>
                             </button>
-                            <div data-dropdown-menu role="menu" hidden class="absolute right-0 z-20 mt-2 w-48 rounded-md border border-border bg-surface py-1">
-                                <a href="{{ path('app_logout') }}" role="menuitem" class="block px-4 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">
-                                    Se déconnecter
-                                </a>
+                            <div id="user-menu" data-dropdown-menu aria-labelledby="user-menu-trigger" hidden class="absolute right-0 z-20 mt-2 w-48 rounded-md border border-border bg-surface py-1">
+                                <form method="post" action="{{ path('app_logout') }}">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-muted hover:bg-surface-hover hover:text-fg">
+                                        Sign out
+                                    </button>
+                                </form>
                             </div>
                         </div>
 
                         {# Mobile hamburger #}
                         <button type="button" data-nav-toggle aria-controls="mobile-nav" aria-expanded="false" class="rounded-md p-2 text-muted hover:bg-surface-hover hover:text-fg sm:hidden">
-                            <span class="sr-only">Ouvrir le menu</span>
+                            <span class="sr-only">Open menu</span>
                             <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
@@ -74,7 +77,7 @@
                     </a>
                     {# TODO(#server-crud): swap href for path('app_server_new') once the route exists. #}
                     <a href="#" aria-disabled="true" tabindex="-1" class="pointer-events-none block rounded-md px-3 py-2 text-sm font-medium text-muted opacity-50">
-                        Nouveau serveur
+                        New server
                     </a>
                 </div>
             </header>

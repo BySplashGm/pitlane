@@ -27,6 +27,7 @@
 @layer base {
     body {
         @apply bg-bg text-fg antialiased;
+        color-scheme: dark;
     }
 
     /* Global keyboard-focus indicator — visible on every interactive element. */
