@@ -22,6 +22,11 @@ use Doctrine\Persistence\ObjectRepository;
  */
 interface ServerRepository extends ObjectRepository
 {
+    /**
+     * Persists the given server and flushes it to the database.
+     */
+    public function save(Server $server): void;
+
     public function findBySlug(string $containerSlug): ?Server;
 
     /**
