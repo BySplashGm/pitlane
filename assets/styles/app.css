@@ -6,8 +6,31 @@
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Site palette — a flat, clean dark theme: near-black bluish background,
+ * dark-grey surfaces, crisp borders, and a vivid F1-red accent. Each token
+ * generates matching Tailwind utilities (bg-*, text-*, border-*).
+ * White on `brand` clears WCAG AA (~5:1); muted text on surfaces clears AA too.
+ */
+@theme {
+    --color-bg: #0f1115;
+    --color-surface: #171a21;
+    --color-surface-hover: #232833;
+    --color-border: #262b35;
+    --color-border-strong: #2c313c;
+    --color-fg: #e6e8eb;
+    --color-muted: #a7adba;
+    --color-brand: #e10600;
+    --color-brand-hover: #c40500;
+}
+
 @layer base {
     body {
-        @apply bg-slate-950 text-slate-100 antialiased;
+        @apply bg-bg text-fg antialiased;
+    }
+
+    /* Global keyboard-focus indicator — visible on every interactive element. */
+    :focus-visible {
+        @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-bg;
     }
 }

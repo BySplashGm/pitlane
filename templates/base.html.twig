@@ -2,7 +2,8 @@
 <html lang="en" class="dark">
     <head>
         <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}Pitlane{% endblock %}</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
         {% block stylesheets %}
         {% endblock %}
@@ -11,6 +12,8 @@
             {% block importmap %}{{ importmap('app') }}{% endblock %}
         {% endblock %}
 
+        {% block head %}{% endblock %}
+
         {% set frankenphp_hot_reload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
         {% if frankenphp_hot_reload %}
         <meta name="frankenphp-hot-reload:url" content="{{ frankenphp_hot_reload }}">
@@ -18,7 +21,127 @@
         <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
         {% endif %}
     </head>
-    <body>
-        {% block body %}{% endblock %}
+    <body class="min-h-screen bg-bg text-fg antialiased">
+        {% if app.user %}
+            <header class="border-b border-border bg-surface">
+                <nav class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+                    <a href="{{ path('app_home') }}" class="flex items-center gap-2 rounded-md text-lg font-semibold tracking-tight text-fg">
+                        <span aria-hidden="true" class="inline-block h-2.5 w-2.5 rounded-full bg-brand"></span>
+                        Pitlane
+                    </a>
+
+                    {# Desktop links #}
+                    <div class="hidden items-center gap-1 sm:flex">
+                        <a href="{{ path('app_home') }}" class="rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                            Dashboard
+                        </a>
+                        {# TODO(#server-crud): swap href for path('app_server_new') once the route exists. #}
+                        <a href="#" aria-disabled="true" tabindex="-1" class="pointer-events-none rounded-md px-3 py-2 text-sm font-medium text-muted opacity-50">
+                            Nouveau serveur
+                        </a>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        {# User dropdown #}
+                        <div class="relative" data-dropdown>
+                            <button type="button" data-dropdown-trigger aria-haspopup="menu" aria-expanded="false" class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                                <span class="max-w-40 truncate">{{ app.user.userIdentifier }}</span>
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <div data-dropdown-menu role="menu" hidden class="absolute right-0 z-20 mt-2 w-48 rounded-md border border-border bg-surface py-1">
+                                <a href="{{ path('app_logout') }}" role="menuitem" class="block px-4 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">
+                                    Se déconnecter
+                                </a>
+                            </div>
+                        </div>
+
+                        {# Mobile hamburger #}
+                        <button type="button" data-nav-toggle aria-controls="mobile-nav" aria-expanded="false" class="rounded-md p-2 text-muted hover:bg-surface-hover hover:text-fg sm:hidden">
+                            <span class="sr-only">Ouvrir le menu</span>
+                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </nav>
+
+                {# Mobile menu panel #}
+                <div id="mobile-nav" data-nav-menu hidden class="border-t border-border px-4 py-2 sm:hidden">
+                    <a href="{{ path('app_home') }}" class="block rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                        Dashboard
+                    </a>
+                    {# TODO(#server-crud): swap href for path('app_server_new') once the route exists. #}
+                    <a href="#" aria-disabled="true" tabindex="-1" class="pointer-events-none block rounded-md px-3 py-2 text-sm font-medium text-muted opacity-50">
+                        Nouveau serveur
+                    </a>
+                </div>
+            </header>
+        {% endif %}
+
+        {% set flash_styles = {
+            success: 'border-green-800 bg-green-950 text-green-200',
+            danger: 'border-[#e10600]/40 bg-[#e10600]/15 text-[#ff8a85]',
+            warning: 'border-amber-800 bg-amber-950 text-amber-200',
+        } %}
+        {% set flashes = app.flashes %}
+        {% if flashes %}
+            <div class="mx-auto mt-4 flex max-w-6xl flex-col gap-2 px-4">
+                {% for type, messages in flashes %}
+                    {% for message in messages %}
+                        <div role="alert" class="rounded-md border px-4 py-3 text-sm {{ flash_styles[type] ?? 'border-border bg-surface text-fg' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <main class="mx-auto max-w-6xl px-4 py-6">
+            {% block body %}{% endblock %}
+        </main>
+
+        {% block scripts %}
+            <script>
+                (() => {
+                    // User dropdown: toggle, close on outside-click / Escape.
+                    const dropdown = document.querySelector('[data-dropdown]');
+                    if (dropdown) {
+                        const trigger = dropdown.querySelector('[data-dropdown-trigger]');
+                        const menu = dropdown.querySelector('[data-dropdown-menu]');
+                        const setOpen = (open) => {
+                            menu.hidden = !open;
+                            trigger.setAttribute('aria-expanded', String(open));
+                        };
+                        trigger.addEventListener('click', (event) => {
+                            event.stopPropagation();
+                            setOpen(menu.hidden);
+                        });
+                        document.addEventListener('click', (event) => {
+                            if (!dropdown.contains(event.target)) {
+                                setOpen(false);
+                            }
+                        });
+                        document.addEventListener('keydown', (event) => {
+                            if (event.key === 'Escape') {
+                                setOpen(false);
+                            }
+                        });
+                    }
+
+                    // Mobile navigation toggle.
+                    const navToggle = document.querySelector('[data-nav-toggle]');
+                    const navMenu = document.querySelector('[data-nav-menu]');
+                    if (navToggle && navMenu) {
+                        navToggle.addEventListener('click', () => {
+                            const open = navMenu.hidden;
+                            navMenu.hidden = !open;
+                            navToggle.setAttribute('aria-expanded', String(open));
+                        });
+                    }
+                })();
+            </script>
+        {% endblock %}
     </body>
 </html>
