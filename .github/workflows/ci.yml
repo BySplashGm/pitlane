@@ -112,6 +112,9 @@ jobs:
       - name: Install dependencies
         run: docker compose exec -T app composer install --no-progress --prefer-dist
 
+      - name: Build Tailwind CSS
+        run: docker compose exec -T app bin/console tailwind:build --minify
+
       - name: Run database migrations
         run: |
           docker compose exec -T app bin/console doctrine:database:create --env=test --if-not-exists
