@@ -35,10 +35,11 @@
                         <a href="{{ path('app_dashboard_index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
                             Dashboard
                         </a>
-                        {# TODO(#server-crud): swap href for path('app_server_new') once the route exists. #}
-                        <a href="#" aria-disabled="true" tabindex="-1" class="pointer-events-none rounded-md px-3 py-2 text-sm font-medium text-muted opacity-50">
-                            New server
-                        </a>
+                        {% if is_granted(constant('App\\Security\\Voter\\ServerVoter::CREATE')) %}
+                            <a href="{{ path('app_server_new') }}" class="rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                                New server
+                            </a>
+                        {% endif %}
                     </div>
 
                     <div class="flex items-center gap-2">
@@ -75,10 +76,11 @@
                     <a href="{{ path('app_dashboard_index') }}" class="block rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
                         Dashboard
                     </a>
-                    {# TODO(#server-crud): swap href for path('app_server_new') once the route exists. #}
-                    <a href="#" aria-disabled="true" tabindex="-1" class="pointer-events-none block rounded-md px-3 py-2 text-sm font-medium text-muted opacity-50">
-                        New server
-                    </a>
+                    {% if is_granted(constant('App\\Security\\Voter\\ServerVoter::CREATE')) %}
+                        <a href="{{ path('app_server_new') }}" class="block rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                            New server
+                        </a>
+                    {% endif %}
                 </div>
             </header>
         {% endif %}

@@ -45,6 +45,19 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
         $this->truncateServers($this->entityManager);
     }
 
+    public function test_save_persists_and_flushes_the_server(): void
+    {
+        $server = $this->buildServer('Spa Endurance');
+
+        $this->doctrineServerRepository->save($server);
+        // Clearing drops every managed entity: the server is only found again if save() flushed it.
+        $this->entityManager->clear();
+
+        $reloaded = $this->doctrineServerRepository->findBySlug('spa-endurance');
+        self::assertInstanceOf(Server::class, $reloaded);
+        self::assertSame('Spa Endurance', $reloaded->getName());
+    }
+
     public function test_find_by_slug_returns_null_when_no_server_matches(): void
     {
         // A server with a different slug is present so the finder must filter on the slug,
@@ -120,6 +133,16 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
 
     private function persistServer(string $name, int $portOffset = 0): Server
     {
+        $server = $this->buildServer($name, $portOffset);
+
+        $this->entityManager->persist($server);
+        $this->entityManager->flush();
+
+        return $server;
+    }
+
+    private function buildServer(string $name, int $portOffset = 0): Server
+    {
         $server = new Server(
             name: $name,
             serverName: 'Pitlane - Spa Endurance',
@@ -144,9 +167,6 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
             registerToLobby: true,
         );
         $server->generateContainerSlug();
-
-        $this->entityManager->persist($server);
-        $this->entityManager->flush();
 
         return $server;
     }

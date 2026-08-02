@@ -66,7 +66,7 @@ final class ServerValidationTest extends KernelTestCase
         yield 'blank car entry' => [self::buildServer(cars: ['']), 'cars[0]'];
         yield 'blank admin password' => [self::buildServer(adminPassword: ''), 'adminPassword'];
         yield 'max clients too low' => [self::buildServer(maxClients: 0), 'maxClients'];
-        yield 'max clients too high' => [self::buildServer(maxClients: 25), 'maxClients'];
+        yield 'max clients too high' => [self::buildServer(maxClients: 65), 'maxClients'];
         yield 'tcp port too low' => [self::buildServer(tcpPort: 1023), 'tcpPort'];
         yield 'tcp port too high' => [self::buildServer(tcpPort: 65536), 'tcpPort'];
         yield 'udp port too low' => [self::buildServer(udpPort: 1023), 'udpPort'];
@@ -91,7 +91,7 @@ final class ServerValidationTest extends KernelTestCase
     public static function valid_boundary_servers(): iterable
     {
         yield 'max clients lower bound' => [self::buildServer(maxClients: 1)];
-        yield 'max clients upper bound' => [self::buildServer(maxClients: 24)];
+        yield 'max clients upper bound' => [self::buildServer(maxClients: 64)];
         yield 'tcp port lower bound' => [self::buildServer(tcpPort: 1024)];
         yield 'tcp port upper bound' => [self::buildServer(tcpPort: 65535)];
         yield 'ambient temp lower bound' => [self::buildServer(ambientTemp: 0)];

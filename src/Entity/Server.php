@@ -71,7 +71,7 @@ final class Server
     private string $adminPassword;
 
     #[ORM\Column]
-    #[Assert\Range(min: 1, max: 24)]
+    #[Assert\Range(min: 1, max: 64)]
     private int $maxClients;
 
     #[ORM\Column]

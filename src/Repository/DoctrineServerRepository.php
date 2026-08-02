@@ -31,6 +31,13 @@ class DoctrineServerRepository extends ServiceEntityRepository implements Server
     }
 
     #[Override]
+    public function save(Server $server): void
+    {
+        $this->getEntityManager()->persist($server);
+        $this->getEntityManager()->flush();
+    }
+
+    #[Override]
     public function findBySlug(string $containerSlug): ?Server
     {
         return $this->findOneBy(['containerSlug' => $containerSlug]);
