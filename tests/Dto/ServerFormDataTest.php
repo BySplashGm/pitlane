@@ -16,9 +16,17 @@ namespace App\Tests\Dto;
 use App\Dto\ServerFormData;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
+use App\Repository\ServerRepository;
 use App\Validator\ContainerSlug;
+use App\Validator\ContainerSlugValidator;
+use Override;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
+use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\ConstraintValidatorFactory;
+use Symfony\Component\Validator\ConstraintValidatorInterface;
+use Symfony\Component\Validator\Validation;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class ServerFormDataTest extends TestCase
 {
@@ -113,5 +121,108 @@ final class ServerFormDataTest extends TestCase
         $attributes = new ReflectionProperty(ServerFormData::class, 'name')->getAttributes(ContainerSlug::class);
 
         self::assertCount(1, $attributes);
+    }
+
+    public function test_valid_ports_raise_no_port_violation(): void
+    {
+        $violations = $this->violations($this->validFormData());
+
+        self::assertNotContains('tcpPort: This port is reserved by the platform and cannot be used.', $violations);
+        self::assertNotContains('udpPort: This port is reserved by the platform and cannot be used.', $violations);
+        self::assertNotContains('httpPort: This port is reserved by the platform and cannot be used.', $violations);
+        self::assertNotContains('httpPort: The HTTP port must differ from the TCP port.', $violations);
+    }
+
+    public function test_a_reserved_tcp_port_is_rejected(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->tcpPort = 8080;
+
+        self::assertContains('tcpPort: This port is reserved by the platform and cannot be used.', $this->violations($serverFormData));
+    }
+
+    public function test_a_reserved_udp_port_is_rejected(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->udpPort = 5432;
+
+        self::assertContains('udpPort: This port is reserved by the platform and cannot be used.', $this->violations($serverFormData));
+    }
+
+    public function test_a_reserved_http_port_is_rejected(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->httpPort = 8000;
+
+        self::assertContains('httpPort: This port is reserved by the platform and cannot be used.', $this->violations($serverFormData));
+    }
+
+    public function test_an_http_port_equal_to_the_tcp_port_is_rejected(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->tcpPort = 9600;
+        $serverFormData->httpPort = 9600;
+
+        self::assertContains('httpPort: The HTTP port must differ from the TCP port.', $this->violations($serverFormData));
+    }
+
+    private function validFormData(): ServerFormData
+    {
+        $serverFormData = new ServerFormData();
+        $serverFormData->name = 'Monza Cup';
+        $serverFormData->serverName = 'Pitlane Monza';
+        $serverFormData->track = 'monza';
+        $serverFormData->cars = ['ferrari_488'];
+        $serverFormData->adminPassword = 'admin-secret';
+        $serverFormData->weatherGraphics = '3_clear';
+        $serverFormData->tcpPort = 9600;
+        $serverFormData->udpPort = 9601;
+        $serverFormData->httpPort = 9602;
+
+        return $serverFormData;
+    }
+
+    /**
+     * @return list<string> every violation as "propertyPath: message"
+     */
+    private function violations(ServerFormData $serverFormData): array
+    {
+        $messages = [];
+        foreach ($this->validator()->validate($serverFormData) as $constraintViolationList) {
+            $messages[] = \sprintf('%s: %s', $constraintViolationList->getPropertyPath(), $constraintViolationList->getMessage());
+        }
+
+        return $messages;
+    }
+
+    /**
+     * The container-slug constraint needs an injected repository, so the plain validator builder is
+     * given a factory that supplies {@see ContainerSlugValidator} with a stub (every slug free) and
+     * defers every other constraint to the default factory.
+     */
+    private function validator(): ValidatorInterface
+    {
+        $serverRepository = self::createStub(ServerRepository::class);
+
+        $constraintValidatorFactory = new class($serverRepository) extends ConstraintValidatorFactory {
+            public function __construct(
+                private readonly ServerRepository $serverRepository,
+            ) {
+                parent::__construct();
+            }
+
+            #[Override]
+            public function getInstance(Constraint $constraint): ConstraintValidatorInterface
+            {
+                return $constraint instanceof ContainerSlug
+                    ? new ContainerSlugValidator($this->serverRepository)
+                    : parent::getInstance($constraint);
+            }
+        };
+
+        return Validation::createValidatorBuilder()
+            ->enableAttributeMapping()
+            ->setConstraintValidatorFactory($constraintValidatorFactory)
+            ->getValidator();
     }
 }

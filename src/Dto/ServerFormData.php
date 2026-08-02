@@ -16,8 +16,10 @@ namespace App\Dto;
 use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
+use App\Port\ReservedPorts;
 use App\Validator\ContainerSlug;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Mutable form model for creating a {@see Server}.
@@ -101,6 +103,29 @@ final class ServerFormData
     public bool $tcpNoDelay = true;
 
     public bool $registerToLobby = true;
+
+    /**
+     * Rejects reserved host ports on any of the three fields, and an HTTP port equal to the TCP port
+     * (both are TCP, so the same number cannot serve both). UDP may share a number with either, as a
+     * different transport protocol.
+     */
+    #[Assert\Callback]
+    public function validatePorts(ExecutionContextInterface $executionContext): void
+    {
+        foreach (['tcpPort' => $this->tcpPort, 'udpPort' => $this->udpPort, 'httpPort' => $this->httpPort] as $field => $port) {
+            if (ReservedPorts::contains($port)) {
+                $executionContext->buildViolation('This port is reserved by the platform and cannot be used.')
+                    ->atPath($field)
+                    ->addViolation();
+            }
+        }
+
+        if ($this->httpPort === $this->tcpPort) {
+            $executionContext->buildViolation('The HTTP port must differ from the TCP port.')
+                ->atPath('httpPort')
+                ->addViolation();
+        }
+    }
 
     /**
      * Builds the entity from the validated form values.

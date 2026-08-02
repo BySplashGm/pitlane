@@ -155,6 +155,16 @@ final class PortConflictServiceTest extends TestCase
         );
     }
 
+    public function test_suggest_next_available_ports_skips_reserved_ports(): void
+    {
+        // 8080 is reserved by the platform: the TCP suggestion must step over it to 8081, and the
+        // following ports carry on from there.
+        self::assertSame(
+            ['tcp' => 8081, 'udp' => 8082, 'http' => 8083],
+            $this->makeService()->suggestNextAvailablePorts(8080),
+        );
+    }
+
     private function makeService(Server ...$servers): PortConflictService
     {
         $serverRepository = self::createStub(ServerRepository::class);

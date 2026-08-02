@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Server;
+use App\Port\ReservedPorts;
 use App\Repository\ServerRepository;
 use Override;
 
@@ -72,7 +73,8 @@ final readonly class PortConflictService implements PortConflictServiceInterface
     }
 
     /**
-     * The first port at or above $from that is not in the used-port set.
+     * The first port at or above $from that is neither in the used-port set nor reserved by the
+     * platform.
      *
      * @param array<int, int> $usedPorts
      */
@@ -80,7 +82,7 @@ final readonly class PortConflictService implements PortConflictServiceInterface
     {
         $candidate = $from;
 
-        while (isset($usedPorts[$candidate])) {
+        while (isset($usedPorts[$candidate]) || ReservedPorts::contains($candidate)) {
             ++$candidate;
         }
 
