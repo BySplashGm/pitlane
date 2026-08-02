@@ -24,6 +24,7 @@ services:
     App\Repository\ServerRepository: '@App\Repository\DoctrineServerRepository'
     App\Repository\UserRepository: '@App\Repository\DoctrineUserRepository'
     App\Service\AcConfigServiceInterface: '@App\Service\AcConfigService'
+    App\Service\AcContentServiceInterface: '@App\Service\AcContentService'
     App\Service\DockerServiceInterface: '@App\Service\DockerService'
     App\Service\PortCheckerServiceInterface: '@App\Service\PortCheckerService'
     App\Service\PortConflictServiceInterface: '@App\Service\PortConflictService'

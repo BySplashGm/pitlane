@@ -9,6 +9,7 @@ services:
       - .:/var/www/app:cached
       - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
       - ${AC_SERVERS_DIR:-./var/ac-servers}:/ac-servers
+      - ${AC_CONTENT_DIR:-./var/ac-content}:/ac-content
     ports:
       - "8000:8000"
     environment:
