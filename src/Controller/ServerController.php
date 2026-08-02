@@ -14,13 +14,17 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Dto\ServerFormData;
+use App\Entity\Server;
 use App\Exception\EmptyCarListException;
 use App\Exception\MissingContainerSlugException;
 use App\Form\ServerType;
 use App\Repository\ServerRepository;
 use App\Security\Voter\ServerVoter;
 use App\Service\AcConfigServiceInterface;
+use App\Service\DockerServiceInterface;
+use App\Service\PortCheckerServiceInterface;
 use App\Service\PortConflictServiceInterface;
+use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Form\FormError;
@@ -31,10 +35,17 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class ServerController extends AbstractController
 {
+    /**
+     * Fallback status when the Docker daemon cannot be reached: the page still renders.
+     */
+    private const string STATUS_UNKNOWN = 'unknown';
+
     public function __construct(
         private readonly ServerRepository $serverRepository,
         private readonly PortConflictServiceInterface $portConflictService,
         private readonly AcConfigServiceInterface $acConfigService,
+        private readonly DockerServiceInterface $dockerService,
+        private readonly PortCheckerServiceInterface $portCheckerService,
     ) {
     }
 
@@ -68,13 +79,51 @@ final class ServerController extends AbstractController
 
                 $this->addFlash('success', \sprintf('Server "%s" created.', $server->getName()));
 
-                // TODO: redirect to the server detail page once app_server_show exists (see issue #16).
-                return $this->redirectToRoute('app_dashboard_index');
+                return $this->redirectToRoute('app_server_show', ['id' => $server->getId()]);
             }
         }
 
         return $this->render('server/new.html.twig', [
             'form' => $form,
         ]);
+    }
+
+    #[Route(path: '/server/{id}', name: 'app_server_show', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted(ServerVoter::VIEW, subject: 'server')]
+    public function show(Server $server): Response
+    {
+        try {
+            $status = $this->dockerService->getContainerStatus($server);
+        } catch (RuntimeException|MissingContainerSlugException) {
+            // A Docker daemon hiccup must not blank the page: fall back to an unknown status.
+            $status = self::STATUS_UNKNOWN;
+        }
+
+        try {
+            $ports = $this->portCheckerService->checkServer($server);
+        } catch (RuntimeException) {
+            // The public IP could not be resolved: report every port as not-checkable rather than fail.
+            $ports = ['tcp' => null, 'udp' => null, 'http' => null];
+        }
+
+        return $this->render('server/show.html.twig', [
+            'server' => $server,
+            'status' => $status,
+            'ports' => $ports,
+        ]);
+    }
+
+    #[Route(path: '/server/{id}/logs', name: 'app_server_logs', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted(ServerVoter::VIEW, subject: 'server')]
+    public function logs(Server $server): Response
+    {
+        try {
+            $logs = $this->dockerService->getLogs($server);
+        } catch (RuntimeException|MissingContainerSlugException) {
+            // The poller hits this endpoint every few seconds: degrade quietly instead of 500-looping.
+            $logs = '';
+        }
+
+        return new Response($logs, Response::HTTP_OK, ['Content-Type' => 'text/plain; charset=utf-8']);
     }
 }

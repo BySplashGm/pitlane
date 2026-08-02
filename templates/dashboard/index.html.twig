@@ -61,14 +61,17 @@
                         </div>
                     </dl>
 
-                    {# TODO(#server-crud): replace these disabled placeholders with real POST forms and a
-                       detail link once app_server_start/stop/restart/show exist and a ServerVoter gates them. #}
+                    {# TODO(#server-crud): replace these disabled placeholders with real POST forms
+                       once app_server_start/stop/restart exist and a ServerVoter gates them. #}
                     <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-                        {% for action in ['Start', 'Stop', 'Restart', 'View'] %}
+                        {% for action in ['Start', 'Stop', 'Restart'] %}
                             <span aria-disabled="true" class="pointer-events-none cursor-not-allowed rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted opacity-50">
                                 {{ action }}
                             </span>
                         {% endfor %}
+                        <a href="{{ path('app_server_show', { id: server.id }) }}" class="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                            View
+                        </a>
                     </div>
                 </article>
             {% endfor %}
