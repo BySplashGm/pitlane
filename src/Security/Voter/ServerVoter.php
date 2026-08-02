@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace App\Security\Voter;
 
+use App\Entity\Server;
 use App\Entity\User;
 use Override;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
@@ -20,17 +21,26 @@ use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
- * @extends Voter<string, null>
+ * @extends Voter<string, Server|null>
  */
 final class ServerVoter extends Voter
 {
     public const string CREATE = 'SERVER_CREATE';
 
+    public const string VIEW = 'SERVER_VIEW';
+
+    public const string DELETE = 'SERVER_DELETE';
+
     #[Override]
     protected function supports(string $attribute, mixed $subject): bool
     {
-        // Creating a server has no subject yet: the decision rests on the actor's role alone.
-        return self::CREATE === $attribute;
+        return match ($attribute) {
+            // Creating a server has no subject yet: the decision rests on the actor's role alone.
+            self::CREATE => null === $subject,
+            // Viewing and deleting act on a specific server.
+            self::VIEW, self::DELETE => $subject instanceof Server,
+            default => false,
+        };
     }
 
     #[Override]
@@ -42,7 +52,12 @@ final class ServerVoter extends Voter
             return false;
         }
 
-        // Owner and admin may create servers; operators may not.
-        return $actor->hasFullServerAccess();
+        return match ($attribute) {
+            // Creating and deleting a server rest on the actor's role alone: owner and admin only.
+            self::CREATE, self::DELETE => $actor->hasFullServerAccess(),
+            // The only remaining supported attribute is VIEW, scoped per assignment: owner and admin
+            // see every server, operators only the ones assigned to them.
+            default => $subject instanceof Server && $actor->hasAccessTo($subject),
+        };
     }
 }
