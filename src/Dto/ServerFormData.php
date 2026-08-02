@@ -57,7 +57,7 @@ final class ServerFormData
     #[Assert\NotBlank]
     public string $adminPassword = '';
 
-    #[Assert\Range(min: 1, max: 24)]
+    #[Assert\Range(min: 1, max: 64)]
     public int $maxClients = 12;
 
     #[Assert\Range(min: 1024, max: 65535)]
@@ -90,9 +90,9 @@ final class ServerFormData
     #[Assert\Range(min: 0, max: 100)]
     public int $trackGrip = 100;
 
-    public bool $tcpNoDelay = false;
+    public bool $tcpNoDelay = true;
 
-    public bool $registerToLobby = false;
+    public bool $registerToLobby = true;
 
     /**
      * Builds the entity from the validated form values.

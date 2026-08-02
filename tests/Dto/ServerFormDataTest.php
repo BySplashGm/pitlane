@@ -43,8 +43,8 @@ final class ServerFormDataTest extends TestCase
         self::assertSame(26, $serverFormData->trackTemp);
         self::assertFalse($serverFormData->dynamicTrack);
         self::assertSame(100, $serverFormData->trackGrip);
-        self::assertFalse($serverFormData->tcpNoDelay);
-        self::assertFalse($serverFormData->registerToLobby);
+        self::assertTrue($serverFormData->tcpNoDelay);
+        self::assertTrue($serverFormData->registerToLobby);
     }
 
     public function test_to_server_maps_every_field(): void

@@ -1,0 +1,159 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}New server · Pitlane{% endblock %}
+
+{% macro field(field, label, help, attrs = {}) %}
+    <div class="flex flex-col gap-1">
+        {{ form_label(field, label, {label_attr: {class: 'text-sm font-medium text-fg'}}) }}
+        {{ form_widget(field, {attr: {class: 'w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted focus:border-brand focus:outline-none'}|merge(attrs)}) }}
+        {% if help %}<p class="text-xs text-muted">{{ help }}</p>{% endif %}
+        {{ form_errors(field) }}
+    </div>
+{% endmacro %}
+
+{% macro toggle(field, label, help) %}
+    <div class="flex flex-col gap-1">
+        <label class="flex items-center gap-2 text-sm font-medium text-fg">
+            {{ form_widget(field, {attr: {class: 'h-4 w-4 rounded border-border bg-bg text-brand focus:ring-brand'}}) }}
+            {{ label }}
+        </label>
+        {% if help %}<p class="text-xs text-muted">{{ help }}</p>{% endif %}
+        {{ form_errors(field) }}
+    </div>
+{% endmacro %}
+
+{% block body %}
+    {% import _self as ui %}
+
+    <div class="mx-auto max-w-3xl">
+        <div class="mb-6">
+            <h1 class="text-2xl font-semibold tracking-tight text-fg">New server</h1>
+            <p class="mt-1 text-sm text-muted">Configure a new Assetto Corsa dedicated server.</p>
+        </div>
+
+        {{ form_start(form, {attr: {class: 'flex flex-col gap-8'}}) }}
+            {{ form_errors(form) }}
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Identification</legend>
+                {{ ui.field(form.name, 'Name', 'Internal name; also used to derive the container slug.') }}
+                {{ ui.field(form.serverName, 'Server name', 'Name shown to players in the in-game lobby.') }}
+            </fieldset>
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Track</legend>
+                {{ ui.field(form.track, 'Track', null) }}
+                {{ ui.field(form.trackLayout, 'Track layout', 'Optional layout variant.') }}
+            </fieldset>
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Cars</legend>
+                <div class="flex flex-col gap-2"
+                     data-collection
+                     data-prototype="{{ form_widget(form.cars.vars.prototype, {attr: {class: 'w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg focus:border-brand focus:outline-none'}})|e('html_attr') }}"
+                     data-index="{{ form.cars|length }}">
+                    {{ form_label(form.cars, 'Cars', {label_attr: {class: 'text-sm font-medium text-fg'}}) }}
+                    <div data-collection-rows class="flex flex-col gap-2">
+                        {% for car in form.cars %}
+                            <div class="flex items-center gap-2" data-collection-row>
+                                {{ form_widget(car, {attr: {class: 'w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg focus:border-brand focus:outline-none'}}) }}
+                                <button type="button" data-collection-remove class="rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">Remove</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" data-collection-add class="self-start rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface-hover">Add car</button>
+                    {{ form_errors(form.cars) }}
+                </div>
+            </fieldset>
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Access</legend>
+                {{ ui.field(form.password, 'Join password', 'Leave blank for an open server.') }}
+                {{ ui.field(form.adminPassword, 'Admin password', null) }}
+                {{ ui.field(form.maxClients, 'Max clients', null, {min: 1, max: 64}) }}
+            </fieldset>
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Ports</legend>
+                <div class="grid gap-4 sm:grid-cols-3">
+                    {{ ui.field(form.tcpPort, 'TCP port', null, {min: 1024, max: 65535}) }}
+                    {{ ui.field(form.udpPort, 'UDP port', null, {min: 1024, max: 65535}) }}
+                    {{ ui.field(form.httpPort, 'HTTP port', null, {min: 1024, max: 65535}) }}
+                </div>
+            </fieldset>
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Session</legend>
+                {{ ui.field(form.sessionType, 'Session type', null) }}
+                <div class="grid gap-4 sm:grid-cols-2">
+                    {{ ui.field(form.sessionDuration, 'Session duration', null, {min: 1}) }}
+                    {{ ui.field(form.durationUnit, 'Duration unit', null) }}
+                </div>
+            </fieldset>
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Weather</legend>
+                {{ ui.field(form.weatherGraphics, 'Weather graphics', 'acServer weather preset id, e.g. "3_clear".') }}
+                <div class="grid gap-4 sm:grid-cols-2">
+                    {{ ui.field(form.ambientTemp, 'Ambient temperature (°C)', 'Air temperature in °C, from 0 to 40.', {min: 0, max: 40}) }}
+                    {{ ui.field(form.trackTemp, 'Track temperature (°C)', 'Track surface temperature in °C, from 0 to 55 — usually a few degrees above ambient.', {min: 0, max: 55}) }}
+                </div>
+            </fieldset>
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Dynamic track</legend>
+                {{ ui.toggle(form.dynamicTrack, 'Dynamic track', 'Grip builds up over the session as cars lay rubber on the track. Check for an evolving surface; leave unchecked for constant grip.') }}
+                {{ ui.field(form.trackGrip, 'Starting track grip (%)', 'Grip level at the start of the session, from 0 (green) to 100 (fully rubbered-in).', {min: 0, max: 100}) }}
+            </fieldset>
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Options</legend>
+                {{ ui.toggle(form.tcpNoDelay, 'TCP no delay', 'Sends network packets immediately instead of batching them, lowering latency at the cost of more traffic. Check unless you have a reason not to.') }}
+                {{ ui.toggle(form.registerToLobby, 'Register to lobby', 'Lists the server on the public Assetto Corsa lobby so anyone can find and join it. Uncheck to keep it private.') }}
+            </fieldset>
+
+            <div class="flex items-center justify-end gap-3">
+                <a href="{{ path('app_dashboard_index') }}" class="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">Cancel</a>
+                <button type="submit" class="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90">Create server</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ parent() }}
+    <script>
+        (() => {
+            const collection = document.querySelector('[data-collection]');
+            if (!collection) {
+                return;
+            }
+
+            const rows = collection.querySelector('[data-collection-rows]');
+            const addButton = collection.querySelector('[data-collection-add]');
+            let index = parseInt(collection.dataset.index, 10);
+
+            const wireRemove = (row) => {
+                const removeButton = row.querySelector('[data-collection-remove]');
+                if (removeButton) {
+                    removeButton.addEventListener('click', () => row.remove());
+                }
+            };
+
+            rows.querySelectorAll('[data-collection-row]').forEach(wireRemove);
+
+            addButton.addEventListener('click', () => {
+                const widget = collection.dataset.prototype.replace(/__name__/g, String(index));
+                index += 1;
+
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2';
+                row.setAttribute('data-collection-row', '');
+                row.innerHTML = widget
+                    + '<button type="button" data-collection-remove class="rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">Remove</button>';
+                rows.appendChild(row);
+                wireRemove(row);
+            });
+        })();
+    </script>
+{% endblock %}

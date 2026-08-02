@@ -40,15 +40,18 @@ final class ServerType extends AbstractType
         // Labels and help text live in the Twig template, not here: keeping them out of the form
         // leaves nothing cosmetic for mutation testing to pick at. Only behavioural options remain.
         // The cars collection relies on CollectionType's default TextType entry.
+        //
+        // Required text fields carry empty_data '': without it an empty submit maps to null and the
+        // entity's non-null string setters throw a TypeError before validation can report NotBlank.
 
         // Identification
         $builder
-            ->add('name', TextType::class)
-            ->add('serverName', TextType::class);
+            ->add('name', TextType::class, ['empty_data' => ''])
+            ->add('serverName', TextType::class, ['empty_data' => '']);
 
         // Track
         $builder
-            ->add('track', TextType::class)
+            ->add('track', TextType::class, ['empty_data' => ''])
             ->add('trackLayout', TextType::class, ['required' => false]);
 
         // Cars
@@ -62,7 +65,7 @@ final class ServerType extends AbstractType
         // Access
         $builder
             ->add('password', TextType::class, ['required' => false])
-            ->add('adminPassword', TextType::class)
+            ->add('adminPassword', TextType::class, ['empty_data' => ''])
             ->add('maxClients', IntegerType::class, ['empty_data' => '12']);
 
         // Ports
@@ -79,7 +82,7 @@ final class ServerType extends AbstractType
 
         // Weather
         $builder
-            ->add('weatherGraphics', TextType::class)
+            ->add('weatherGraphics', TextType::class, ['empty_data' => ''])
             ->add('ambientTemp', IntegerType::class, ['empty_data' => '20'])
             ->add('trackTemp', IntegerType::class, ['empty_data' => '26']);
 
