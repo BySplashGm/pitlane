@@ -124,6 +124,11 @@ final class ServerController extends AbstractController
             $logs = '';
         }
 
-        return new Response($logs, Response::HTTP_OK, ['Content-Type' => 'text/plain; charset=utf-8']);
+        // Logs are untrusted server output: text/plain plus nosniff so a direct hit on this URL can
+        // never be MIME-sniffed into executable HTML.
+        return new Response($logs, Response::HTTP_OK, [
+            'Content-Type' => 'text/plain; charset=utf-8',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

@@ -109,7 +109,7 @@ final class ServerControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Not probeable');
         // The owner may delete, and the running server exposes the polled log box.
         self::assertSelectorTextContains('body', 'Delete');
-        self::assertCount(1, $crawler->filter('[data-logs]'));
+        self::assertCount(1, $crawler->filter('[data-controller="server-logs"]'));
     }
 
     public function test_the_detail_page_hides_the_log_box_when_the_server_is_not_running(): void
@@ -124,7 +124,7 @@ final class ServerControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', 'The server is not running.');
-        self::assertCount(0, $crawler->filter('[data-logs]'));
+        self::assertCount(0, $crawler->filter('[data-controller="server-logs"]'));
     }
 
     public function test_the_detail_page_degrades_when_docker_and_the_port_probe_fail(): void
@@ -213,6 +213,8 @@ final class ServerControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Content-Type', 'text/plain; charset=utf-8');
+        // Untrusted log output must never be MIME-sniffed into HTML.
+        self::assertResponseHeaderSame('X-Content-Type-Options', 'nosniff');
         self::assertSame("lap 1 complete\nlap 2 complete", (string) $this->kernelBrowser->getResponse()->getContent());
     }
 

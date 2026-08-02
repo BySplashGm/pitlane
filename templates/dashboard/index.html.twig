@@ -65,9 +65,9 @@
                        once app_server_start/stop/restart exist and a ServerVoter gates them. #}
                     <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
                         {% for action in ['Start', 'Stop', 'Restart'] %}
-                            <span aria-disabled="true" class="pointer-events-none cursor-not-allowed rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted opacity-50">
+                            <button type="button" disabled class="cursor-not-allowed rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted opacity-50" title="Coming soon">
                                 {{ action }}
-                            </span>
+                            </button>
                         {% endfor %}
                         <a href="{{ path('app_server_show', { id: server.id }) }}" class="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:bg-surface-hover hover:text-fg">
                             View

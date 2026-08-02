@@ -29,14 +29,14 @@
            app_server_start/stop/restart/edit/delete exist and a ServerVoter gates each action. #}
         <div class="flex flex-wrap items-center gap-2">
             {% for action in ['Start', 'Stop', 'Restart', 'Edit'] %}
-                <span aria-disabled="true" class="pointer-events-none cursor-not-allowed rounded-md border border-border px-3 py-1.5 text-sm font-medium text-muted opacity-50" title="Coming soon">
+                <button type="button" disabled class="cursor-not-allowed rounded-md border border-border px-3 py-1.5 text-sm font-medium text-muted opacity-50" title="Coming soon">
                     {{ action }}
-                </span>
+                </button>
             {% endfor %}
             {% if is_granted(constant('App\\Security\\Voter\\ServerVoter::DELETE'), server) %}
-                <span aria-disabled="true" class="pointer-events-none cursor-not-allowed rounded-md border border-[#e10600]/40 px-3 py-1.5 text-sm font-medium text-[#ff8a85] opacity-50" title="Coming soon">
+                <button type="button" disabled class="cursor-not-allowed rounded-md border border-[#e10600]/40 px-3 py-1.5 text-sm font-medium text-[#ff8a85] opacity-50" title="Coming soon">
                     Delete
-                </span>
+                </button>
             {% endif %}
         </div>
     </div>
@@ -107,43 +107,9 @@
     <section class="mt-6 rounded-lg border border-border bg-surface p-4">
         <h2 class="text-lg font-semibold text-fg">Logs</h2>
         {% if status == 'running' %}
-            <pre data-logs data-logs-url="{{ path('app_server_logs', { id: server.id }) }}" class="mt-3 max-h-96 overflow-auto rounded-md border border-border bg-bg p-3 font-mono text-xs leading-relaxed text-muted">Loading logs…</pre>
+            <pre data-controller="server-logs" data-server-logs-url-value="{{ path('app_server_logs', { id: server.id }) }}" aria-label="Server logs" class="mt-3 max-h-96 overflow-auto rounded-md border border-border bg-bg p-3 font-mono text-xs leading-relaxed text-muted">Loading logs…</pre>
         {% else %}
             <p class="mt-3 text-sm text-muted">The server is not running. Logs are available once it starts.</p>
         {% endif %}
     </section>
-{% endblock %}
-
-{% block scripts %}
-    {{ parent() }}
-    <script>
-        (() => {
-            // Poll the plain-text log endpoint every 5s while the server is running, keeping the box
-            // scrolled to the newest lines when the reader is already at the bottom.
-            const box = document.querySelector('[data-logs]');
-            if (!box) {
-                return;
-            }
-
-            const url = box.dataset.logsUrl;
-            const refresh = async () => {
-                try {
-                    const response = await fetch(url, { headers: { 'Accept': 'text/plain' } });
-                    if (!response.ok) {
-                        return;
-                    }
-                    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 20;
-                    box.textContent = (await response.text()) || 'No logs yet.';
-                    if (atBottom) {
-                        box.scrollTop = box.scrollHeight;
-                    }
-                } catch (error) {
-                    // A transient fetch failure is ignored: the next tick retries.
-                }
-            };
-
-            refresh();
-            setInterval(refresh, 5000);
-        })();
-    </script>
 {% endblock %}
