@@ -16,6 +16,7 @@ namespace App\Dto;
 use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
+use App\Validator\ContainerSlug;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -27,8 +28,15 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 final class ServerFormData
 {
+    /**
+     * The id of the server being edited, or null when creating. It excludes the server's own row from
+     * the {@see ContainerSlug} uniqueness check so re-saving an unchanged name is not a false clash.
+     */
+    public ?int $serverId = null;
+
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
+    #[ContainerSlug]
     public string $name = '';
 
     #[Assert\NotBlank]

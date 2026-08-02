@@ -16,10 +16,10 @@ namespace App\Entity;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Repository\DoctrineServerRepository;
+use App\Slug\ContainerSlugger;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: DoctrineServerRepository::class)]
@@ -462,7 +462,7 @@ final class Server
     #[ORM\PrePersist]
     public function generateContainerSlug(): void
     {
-        $this->containerSlug = new AsciiSlugger()->slug($this->name)->lower()->toString();
+        $this->containerSlug = ContainerSlugger::slugify($this->name);
     }
 
     #[ORM\PreUpdate]

@@ -16,7 +16,9 @@ namespace App\Tests\Dto;
 use App\Dto\ServerFormData;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
+use App\Validator\ContainerSlug;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 
 final class ServerFormDataTest extends TestCase
 {
@@ -24,6 +26,7 @@ final class ServerFormDataTest extends TestCase
     {
         $serverFormData = new ServerFormData();
 
+        self::assertNull($serverFormData->serverId);
         self::assertSame('', $serverFormData->name);
         self::assertSame('', $serverFormData->serverName);
         self::assertSame('', $serverFormData->track);
@@ -103,5 +106,12 @@ final class ServerFormDataTest extends TestCase
         $serverFormData->cars = ['ferrari_488'];
 
         self::assertSame('', $serverFormData->toServer()->getPassword());
+    }
+
+    public function test_the_name_field_carries_the_container_slug_constraint(): void
+    {
+        $attributes = new ReflectionProperty(ServerFormData::class, 'name')->getAttributes(ContainerSlug::class);
+
+        self::assertCount(1, $attributes);
     }
 }
