@@ -22,7 +22,14 @@ function setup(): void
     build();
     up();
     run('docker compose exec app bin/console tailwind:build');
+    seedContent();
     fixtures();
+}
+
+#[AsTask(name: 'content:seed', description: 'Seed AC_CONTENT_DIR with non-copyright placeholder content for local dev')]
+function contentSeed(): void
+{
+    seedContent();
 }
 
 #[AsTask(name: 'build', description: 'Build the Docker images')]
@@ -177,6 +184,27 @@ function runCsFixer(bool $fixMode = false): void
 function runRector(bool $fixMode = false): void
 {
     run('docker compose exec app vendor/bin/rector process'.($fixMode ? '' : ' --dry-run'));
+}
+
+function seedContent(): void
+{
+    $contentDir = getenv('AC_CONTENT_DIR') ?: './var/ac-content';
+
+    // Non-copyright placeholders: two cars, a single-layout track, a multi-layout track, two weathers.
+    $placeholders = [
+        'cars/test_car_a',
+        'cars/test_car_b',
+        'tracks/test_track_a',
+        'tracks/test_track_b/test_layout_a',
+        'tracks/test_track_b/test_layout_b',
+        'weather/test_weather_clear',
+        'weather/test_weather_rain',
+    ];
+
+    $paths = array_map(static fn (string $placeholder): string => escapeshellarg($contentDir.'/'.$placeholder), $placeholders);
+
+    run('mkdir -p '.implode(' ', $paths));
+    io()->success('Placeholder AC content seeded.');
 }
 
 function loadFixtures(bool $appendMode = false): void

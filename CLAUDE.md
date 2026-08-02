@@ -26,6 +26,7 @@ Task automation goes through Castor:
 - `castor build` — rebuild the Docker images from scratch
 - `castor tailwind` — watch and rebuild the Tailwind CSS during development
 - `castor fixtures` — reset the database and load dev fixtures (see `.claude/rules/fixtures.md`); `castor fixtures:append` loads without resetting
+- `castor content:seed` — fill `AC_CONTENT_DIR` with non-copyright placeholder AC content (cars, tracks, weather) for local dev
 - `castor lint` — run CS Fixer, Rector and PHPStan (max) in check mode
 - `castor lint:fix` — same, auto-fixing CS Fixer and Rector (PHPStan stays read-only)
 - `castor phpstan` / `castor cs` / `castor rector` — run one tool on its own (each has a `:fix` variant where fixing applies)
