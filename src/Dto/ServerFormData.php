@@ -18,6 +18,7 @@ use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Port\ReservedPorts;
 use App\Validator\ContainerSlug;
+use App\Validator\IniSafeValue;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
@@ -43,6 +44,7 @@ final class ServerFormData
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
+    #[IniSafeValue]
     public string $serverName = '';
 
     #[Assert\NotBlank]
@@ -62,10 +64,12 @@ final class ServerFormData
     #[Assert\All([new Assert\NotBlank()])]
     public array $cars = [];
 
+    #[IniSafeValue]
     public ?string $password = null;
 
     #[Assert\NotBlank]
     #[Assert\Length(min: 8, minMessage: 'The admin password must be at least {{ limit }} characters long.')]
+    #[IniSafeValue]
     public string $adminPassword = '';
 
     #[Assert\Range(min: 1, max: 64)]

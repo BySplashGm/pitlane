@@ -19,7 +19,9 @@ use App\Enum\SessionType;
 use App\Repository\ServerRepository;
 use App\Validator\ContainerSlug;
 use App\Validator\ContainerSlugValidator;
+use App\Validator\IniSafeValue;
 use Override;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use Symfony\Component\Validator\Constraint;
@@ -121,6 +123,27 @@ final class ServerFormDataTest extends TestCase
         $attributes = new ReflectionProperty(ServerFormData::class, 'name')->getAttributes(ContainerSlug::class);
 
         self::assertCount(1, $attributes);
+    }
+
+    /**
+     * @param non-empty-string $field
+     */
+    #[DataProvider('iniSafeFields')]
+    public function test_free_text_ini_fields_carry_the_ini_safe_value_constraint(string $field): void
+    {
+        $attributes = new ReflectionProperty(ServerFormData::class, $field)->getAttributes(IniSafeValue::class);
+
+        self::assertCount(1, $attributes);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function iniSafeFields(): iterable
+    {
+        yield 'serverName' => ['serverName'];
+        yield 'password' => ['password'];
+        yield 'adminPassword' => ['adminPassword'];
     }
 
     public function test_valid_ports_raise_no_port_violation(): void
