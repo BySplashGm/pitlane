@@ -166,6 +166,56 @@ final class ServerFormDataTest extends TestCase
         self::assertContains('httpPort: The HTTP port must differ from the TCP port.', $this->violations($serverFormData));
     }
 
+    public function test_valid_admin_password_raises_no_admin_password_violation(): void
+    {
+        $violations = $this->violations($this->validFormData());
+
+        self::assertNotContains('adminPassword: The admin password must be at least 8 characters long.', $violations);
+        self::assertNotContains('adminPassword: The admin password must differ from the join password.', $violations);
+    }
+
+    public function test_a_short_admin_password_is_rejected(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->adminPassword = 'shortpw';
+
+        self::assertContains('adminPassword: The admin password must be at least 8 characters long.', $this->violations($serverFormData));
+    }
+
+    public function test_an_eight_character_admin_password_satisfies_the_length(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->adminPassword = 'length08';
+
+        self::assertNotContains('adminPassword: The admin password must be at least 8 characters long.', $this->violations($serverFormData));
+    }
+
+    public function test_an_admin_password_equal_to_the_join_password_is_rejected(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->password = 'join-secret';
+        $serverFormData->adminPassword = 'join-secret';
+
+        self::assertContains('adminPassword: The admin password must differ from the join password.', $this->violations($serverFormData));
+    }
+
+    public function test_a_distinct_join_password_leaves_the_admin_password_valid(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->password = 'join-secret';
+
+        self::assertNotContains('adminPassword: The admin password must differ from the join password.', $this->violations($serverFormData));
+    }
+
+    public function test_a_blank_join_password_is_not_compared_to_the_admin_password(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->password = '';
+        $serverFormData->adminPassword = 'admin-secret';
+
+        self::assertNotContains('adminPassword: The admin password must differ from the join password.', $this->violations($serverFormData));
+    }
+
     private function validFormData(): ServerFormData
     {
         $serverFormData = new ServerFormData();

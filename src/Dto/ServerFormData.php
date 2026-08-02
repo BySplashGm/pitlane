@@ -65,6 +65,7 @@ final class ServerFormData
     public ?string $password = null;
 
     #[Assert\NotBlank]
+    #[Assert\Length(min: 8, minMessage: 'The admin password must be at least {{ limit }} characters long.')]
     public string $adminPassword = '';
 
     #[Assert\Range(min: 1, max: 64)]
@@ -123,6 +124,21 @@ final class ServerFormData
         if ($this->httpPort === $this->tcpPort) {
             $executionContext->buildViolation('The HTTP port must differ from the TCP port.')
                 ->atPath('httpPort')
+                ->addViolation();
+        }
+    }
+
+    /**
+     * Rejects an admin password equal to the join password: a join password is shared with every
+     * driver, so reusing it as the admin password would hand admin rights to the whole grid. A blank
+     * join password means the server is open, and is not compared.
+     */
+    #[Assert\Callback]
+    public function validateAdminPassword(ExecutionContextInterface $executionContext): void
+    {
+        if (null !== $this->password && '' !== $this->password && $this->password === $this->adminPassword) {
+            $executionContext->buildViolation('The admin password must differ from the join password.')
+                ->atPath('adminPassword')
                 ->addViolation();
         }
     }
