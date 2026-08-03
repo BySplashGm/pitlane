@@ -32,6 +32,7 @@ Task automation goes through Castor:
 - `castor phpstan` / `castor cs` / `castor rector` — run one tool on its own (each has a `:fix` variant where fixing applies)
 - `castor phpunit` — full test run with the 100% coverage gate; `castor phpunit:no-coverage` skips the gate
 - `castor infection` — mutation testing; `castor infection:diff` limits it to lines changed against `main`
+- Pass extra arguments to PHPUnit or Infection after `--`, e.g. `castor phpunit -- --filter SomeTest`; a filtered `phpunit` run drops the coverage gate, since a partial run can't reach 100%
 - `bin/console <cmd>` — Symfony console
 
 ## Layout
