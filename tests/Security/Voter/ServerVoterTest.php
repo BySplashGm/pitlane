@@ -75,6 +75,44 @@ final class ServerVoterTest extends TestCase
         yield 'operator cannot delete even an assigned server' => [UserRole::Operator, true, VoterInterface::ACCESS_DENIED];
     }
 
+    #[DataProvider('edit_cases')]
+    public function test_vote_on_edit(UserRole $userRole, bool $assigned, int $expected): void
+    {
+        $serverVoter = new ServerVoter();
+        $user = new User('actor@pitlane.test', $userRole);
+        $usernamePasswordToken = new UsernamePasswordToken($user, 'main', $user->getRoles());
+        $server = $this->makeServer();
+
+        if ($assigned) {
+            $user->assignServer($server);
+        }
+
+        self::assertSame($expected, $serverVoter->vote($usernamePasswordToken, $server, [ServerVoter::EDIT]));
+    }
+
+    /**
+     * @return iterable<string, array{UserRole, bool, int}>
+     */
+    public static function edit_cases(): iterable
+    {
+        yield 'owner can edit' => [UserRole::Owner, false, VoterInterface::ACCESS_GRANTED];
+        yield 'admin can edit' => [UserRole::Admin, false, VoterInterface::ACCESS_GRANTED];
+        yield 'operator cannot edit' => [UserRole::Operator, false, VoterInterface::ACCESS_DENIED];
+        // Editing settings turns on the role alone, never on assignment: an operator assigned the
+        // server is read-only on settings and still denied. This case separates EDIT from the
+        // assignment-scoped VIEW branch.
+        yield 'operator cannot edit even an assigned server' => [UserRole::Operator, true, VoterInterface::ACCESS_DENIED];
+    }
+
+    public function test_it_abstains_on_edit_without_a_server_subject(): void
+    {
+        $serverVoter = new ServerVoter();
+        $user = new User('actor@pitlane.test', UserRole::Owner);
+        $usernamePasswordToken = new UsernamePasswordToken($user, 'main', $user->getRoles());
+
+        self::assertSame(VoterInterface::ACCESS_ABSTAIN, $serverVoter->vote($usernamePasswordToken, null, [ServerVoter::EDIT]));
+    }
+
     #[DataProvider('view_cases')]
     public function test_vote_on_view(UserRole $userRole, bool $assigned, int $expected): void
     {
