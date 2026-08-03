@@ -17,12 +17,34 @@ use App\Dto\ServerFormData;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Form\ServerType;
+use App\Service\AcContentServiceInterface;
+use Override;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
+use Symfony\Component\Form\ChoiceList\View\ChoiceView;
+use Symfony\Component\Form\FormExtensionInterface;
+use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
 
 #[AllowMockObjectsWithoutExpectations]
 final class ServerTypeTest extends TypeTestCase
 {
+    /**
+     * @return list<FormExtensionInterface>
+     */
+    #[Override]
+    protected function getExtensions(): array
+    {
+        $acContentService = self::createStub(AcContentServiceInterface::class);
+        $acContentService->method('tracks')->willReturn(['monza', 'spa']);
+        $acContentService->method('cars')->willReturn(['ferrari_488', 'porsche_911']);
+        $acContentService->method('weather')->willReturn(['3_clear', '5_light_clouds']);
+        $acContentService->method('trackLayouts')->willReturnCallback(
+            static fn (string $track): array => 'monza' === $track ? ['monza_junior', 'gp'] : [],
+        );
+
+        return [new PreloadedExtension([new ServerType($acContentService)], [])];
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -123,21 +145,7 @@ final class ServerTypeTest extends TypeTestCase
         self::assertSame(100, $serverFormData->trackGrip);
     }
 
-    public function test_blank_car_rows_are_dropped(): void
-    {
-        $submission = $this->validSubmission();
-        $submission['cars'] = ['ferrari_488', '', 'porsche_911'];
-
-        $form = $this->factory->create(ServerType::class);
-        $form->submit($submission);
-
-        $serverFormData = $form->getData();
-        self::assertInstanceOf(ServerFormData::class, $serverFormData);
-        // Pruning the blank row leaves an index gap; the entity gets the re-indexed list.
-        self::assertSame(['ferrari_488', 'porsche_911'], $serverFormData->toServer()->getCars());
-    }
-
-    public function test_existing_cars_can_be_removed(): void
+    public function test_a_narrowed_car_selection_maps_to_the_dto(): void
     {
         $serverFormData = new ServerFormData();
         $serverFormData->cars = ['ferrari_488', 'porsche_911'];
@@ -149,6 +157,64 @@ final class ServerTypeTest extends TypeTestCase
         $form->submit($submission);
 
         self::assertSame(['ferrari_488'], $serverFormData->cars);
+    }
+
+    public function test_the_same_car_can_be_added_more_than_once(): void
+    {
+        $submission = $this->validSubmission();
+        $submission['cars'] = ['ferrari_488', 'ferrari_488', 'porsche_911'];
+
+        $form = $this->factory->create(ServerType::class);
+        $form->submit($submission);
+
+        $serverFormData = $form->getData();
+        self::assertInstanceOf(ServerFormData::class, $serverFormData);
+        self::assertSame(['ferrari_488', 'ferrari_488', 'porsche_911'], $serverFormData->cars);
+    }
+
+    public function test_the_track_layout_field_offers_the_selected_tracks_layouts(): void
+    {
+        $serverFormData = new ServerFormData();
+        $serverFormData->track = 'monza';
+
+        $formView = $this->factory->create(ServerType::class, $serverFormData)->createView();
+
+        $layoutChoices = $formView['trackLayout']->vars['choices'];
+        self::assertIsArray($layoutChoices);
+
+        $layoutValues = [];
+        foreach ($layoutChoices as $layoutChoice) {
+            self::assertInstanceOf(ChoiceView::class, $layoutChoice);
+            $layoutValues[] = $layoutChoice->value;
+        }
+
+        self::assertSame(['monza_junior', 'gp'], $layoutValues);
+    }
+
+    public function test_submitting_a_layout_outside_the_selected_tracks_layouts_is_rejected(): void
+    {
+        $submission = $this->validSubmission();
+        $submission['trackLayout'] = 'not-a-layout';
+
+        $form = $this->factory->create(ServerType::class);
+        $form->submit($submission);
+
+        self::assertFalse($form->get('trackLayout')->isSynchronized());
+    }
+
+    public function test_an_absent_track_leaves_the_layout_field_empty(): void
+    {
+        $submission = $this->validSubmission();
+        unset($submission['track'], $submission['trackLayout']);
+
+        $form = $this->factory->create(ServerType::class);
+        $form->submit($submission);
+
+        self::assertTrue($form->isSynchronized());
+        $serverFormData = $form->getData();
+        self::assertInstanceOf(ServerFormData::class, $serverFormData);
+        self::assertNull($serverFormData->track);
+        self::assertNull($serverFormData->trackLayout);
     }
 
     public function test_optional_fields_are_not_required(): void

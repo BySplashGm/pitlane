@@ -269,6 +269,23 @@ final class ServerControllerTest extends WebTestCase
         self::assertCount(0, $this->entityManager->getRepository(Server::class)->findAll());
     }
 
+    public function test_a_forged_content_value_outside_the_installed_list_is_rejected(): void
+    {
+        $acConfigService = $this->createMock(AcConfigServiceInterface::class);
+        $acConfigService->expects(self::never())->method('writeConfig');
+        self::getContainer()->set(AcConfigServiceInterface::class, $acConfigService);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $payload = $this->validPayload();
+        // A hand-crafted POST bypassing the dropdown: the track is not among the installed content.
+        $payload['track'] = 'not-installed-track';
+
+        $this->submitForm($payload);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(0, $this->entityManager->getRepository(Server::class)->findAll());
+    }
+
     public function test_a_port_conflict_is_reported_without_persisting(): void
     {
         $this->persistServer('Existing Monza', portOffset: 0);

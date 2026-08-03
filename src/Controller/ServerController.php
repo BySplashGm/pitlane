@@ -21,6 +21,7 @@ use App\Form\ServerType;
 use App\Repository\ServerRepository;
 use App\Security\Voter\ServerVoter;
 use App\Service\AcConfigServiceInterface;
+use App\Service\AcContentServiceInterface;
 use App\Service\DockerServiceInterface;
 use App\Service\PortCheckerServiceInterface;
 use App\Service\PortConflictServiceInterface;
@@ -44,6 +45,7 @@ final class ServerController extends AbstractController
         private readonly ServerRepository $serverRepository,
         private readonly PortConflictServiceInterface $portConflictService,
         private readonly AcConfigServiceInterface $acConfigService,
+        private readonly AcContentServiceInterface $acContentService,
         private readonly DockerServiceInterface $dockerService,
         private readonly PortCheckerServiceInterface $portCheckerService,
     ) {
@@ -65,6 +67,12 @@ final class ServerController extends AbstractController
         $serverFormData->udpPort = $suggestedPorts['udp'];
         $serverFormData->httpPort = $suggestedPorts['http'];
 
+        // Feed the server-side Assert\Choice callbacks: membership is validated against the installed
+        // content, so a forged POST cannot smuggle an unlisted value past the UI dropdowns.
+        $serverFormData->availableTracks = $this->acContentService->tracks();
+        $serverFormData->availableCars = $this->acContentService->cars();
+        $serverFormData->availableWeatherGraphics = $this->acContentService->weather();
+
         $form = $this->createForm(ServerType::class, $serverFormData);
         $form->handleRequest($request);
 
@@ -85,6 +93,7 @@ final class ServerController extends AbstractController
 
         return $this->render('server/new.html.twig', [
             'form' => $form,
+            'availableCars' => $serverFormData->availableCars,
         ]);
     }
 

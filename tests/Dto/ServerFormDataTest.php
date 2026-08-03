@@ -39,9 +39,12 @@ final class ServerFormDataTest extends TestCase
         self::assertNull($serverFormData->serverId);
         self::assertSame('', $serverFormData->name);
         self::assertSame('', $serverFormData->serverName);
-        self::assertSame('', $serverFormData->track);
+        self::assertNull($serverFormData->track);
         self::assertNull($serverFormData->trackLayout);
         self::assertSame([], $serverFormData->cars);
+        self::assertSame([], $serverFormData->availableTracks);
+        self::assertSame([], $serverFormData->availableCars);
+        self::assertSame([], $serverFormData->availableWeatherGraphics);
         self::assertNull($serverFormData->password);
         self::assertSame('', $serverFormData->adminPassword);
         self::assertSame(12, $serverFormData->maxClients);
@@ -51,7 +54,7 @@ final class ServerFormDataTest extends TestCase
         self::assertSame(SessionType::Race, $serverFormData->sessionType);
         self::assertSame(15, $serverFormData->sessionDuration);
         self::assertSame(DurationUnit::Minutes, $serverFormData->durationUnit);
-        self::assertSame('', $serverFormData->weatherGraphics);
+        self::assertNull($serverFormData->weatherGraphics);
         self::assertSame(20, $serverFormData->ambientTemp);
         self::assertSame(26, $serverFormData->trackTemp);
         self::assertFalse($serverFormData->dynamicTrack);
@@ -116,6 +119,26 @@ final class ServerFormDataTest extends TestCase
         $serverFormData->cars = ['ferrari_488'];
 
         self::assertSame('', $serverFormData->toServer()->getPassword());
+    }
+
+    public function test_to_server_reindexes_the_cars_into_a_list(): void
+    {
+        $serverFormData = new ServerFormData();
+        // A removed row leaves an index gap; the entity must receive a clean, re-indexed list.
+        $serverFormData->cars = [0 => 'ferrari_488', 2 => 'porsche_911'];
+
+        self::assertSame(['ferrari_488', 'porsche_911'], $serverFormData->toServer()->getCars());
+    }
+
+    public function test_to_server_defaults_a_null_track_and_weather_to_empty_strings(): void
+    {
+        $serverFormData = new ServerFormData();
+        $serverFormData->cars = ['ferrari_488'];
+
+        $server = $serverFormData->toServer();
+
+        self::assertSame('', $server->getTrack());
+        self::assertSame('', $server->getWeatherGraphics());
     }
 
     public function test_the_name_field_carries_the_container_slug_constraint(): void
@@ -239,11 +262,47 @@ final class ServerFormDataTest extends TestCase
         self::assertNotContains('adminPassword: The admin password must differ from the join password.', $this->violations($serverFormData));
     }
 
+    public function test_an_installed_track_car_and_weather_raise_no_choice_violation(): void
+    {
+        $violations = $this->violations($this->validFormData());
+
+        self::assertNotContains('track: The value you selected is not a valid choice.', $violations);
+        self::assertNotContains('cars: One or more of the given values is invalid.', $violations);
+        self::assertNotContains('weatherGraphics: The value you selected is not a valid choice.', $violations);
+    }
+
+    public function test_a_track_outside_the_installed_list_is_rejected(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->track = 'not-installed';
+
+        self::assertContains('track: The value you selected is not a valid choice.', $this->violations($serverFormData));
+    }
+
+    public function test_a_car_outside_the_installed_list_is_rejected(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->cars = ['ferrari_488', 'not-installed'];
+
+        self::assertContains('cars: One or more of the given values is invalid.', $this->violations($serverFormData));
+    }
+
+    public function test_a_weather_outside_the_installed_list_is_rejected(): void
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->weatherGraphics = 'not-installed';
+
+        self::assertContains('weatherGraphics: The value you selected is not a valid choice.', $this->violations($serverFormData));
+    }
+
     private function validFormData(): ServerFormData
     {
         $serverFormData = new ServerFormData();
         $serverFormData->name = 'Monza Cup';
         $serverFormData->serverName = 'Pitlane Monza';
+        $serverFormData->availableTracks = ['monza'];
+        $serverFormData->availableCars = ['ferrari_488'];
+        $serverFormData->availableWeatherGraphics = ['3_clear'];
         $serverFormData->track = 'monza';
         $serverFormData->cars = ['ferrari_488'];
         $serverFormData->adminPassword = 'admin-secret';

@@ -42,26 +42,36 @@
 
             <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
                 <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Track</legend>
-                {{ ui.field(form.track, 'Track', null) }}
-                {{ ui.field(form.trackLayout, 'Track layout', 'Optional layout variant.') }}
+                {{ ui.field(form.track, 'Track', 'Only installed tracks are listed.', {'data-controller': 'symfony--ux-autocomplete--autocomplete'}) }}
+                {{ ui.field(form.trackLayout, 'Track layout', 'Layouts of the selected track; optional.', {'data-controller': 'symfony--ux-autocomplete--autocomplete'}) }}
             </fieldset>
 
             <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
                 <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Cars</legend>
                 <div class="flex flex-col gap-2"
-                     data-collection
-                     data-prototype="{{ form_widget(form.cars.vars.prototype, {attr: {class: 'w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg focus:border-brand focus:outline-none'}})|e('html_attr') }}"
-                     data-index="{{ form.cars|length }}">
-                    {{ form_label(form.cars, 'Cars', {label_attr: {class: 'text-sm font-medium text-fg'}}) }}
-                    <div data-collection-rows class="flex flex-col gap-2">
-                        {% for car in form.cars %}
-                            <div class="flex items-center gap-2" data-collection-row>
-                                {{ form_widget(car, {attr: {class: 'w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg focus:border-brand focus:outline-none'}}) }}
-                                <button type="button" data-collection-remove class="rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">Remove</button>
-                            </div>
-                        {% endfor %}
+                     data-cars
+                     data-cars-name="{{ form.cars.vars.full_name }}"
+                     data-cars-options="{{ availableCars|json_encode|e('html_attr') }}">
+                    <label for="cars-search" class="text-sm font-medium text-fg">Cars</label>
+                    {# The rows are rendered by hand below; keep form_rest from re-emitting them as duplicate inputs. #}
+                    {% do form.cars.setRendered %}
+                    <div class="relative">
+                        <input id="cars-search" type="search" data-cars-search autocomplete="off" placeholder="Search a car to add…"
+                               role="combobox" aria-controls="cars-suggestions" aria-expanded="false" aria-autocomplete="list"
+                               class="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted focus:border-brand focus:outline-none">
+                        <ul id="cars-suggestions" role="listbox" aria-label="Installed cars" data-cars-suggestions
+                            class="absolute z-10 mt-1 hidden max-h-56 w-full overflow-auto rounded-md border border-border bg-surface shadow"></ul>
                     </div>
-                    <button type="button" data-collection-add class="self-start rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface-hover">Add car</button>
+                    <ul data-cars-list class="flex flex-col gap-2">
+                        {% for car in form.cars %}
+                            <li class="flex items-center gap-2" data-cars-row>
+                                <span class="flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg">{{ car.vars.value }}</span>
+                                <input type="hidden" name="{{ car.vars.full_name }}" value="{{ car.vars.value }}">
+                                <button type="button" data-cars-remove class="rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">Remove</button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <p class="text-xs text-muted">Search installed cars and add them; the same car can be added more than once.</p>
                     {{ form_errors(form.cars) }}
                 </div>
             </fieldset>
@@ -93,7 +103,7 @@
 
             <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
                 <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Weather</legend>
-                {{ ui.field(form.weatherGraphics, 'Weather graphics', 'acServer weather preset id, e.g. "3_clear".') }}
+                {{ ui.field(form.weatherGraphics, 'Weather graphics', 'Installed weather presets.', {'data-controller': 'symfony--ux-autocomplete--autocomplete'}) }}
                 <div class="grid gap-4 sm:grid-cols-2">
                     {{ ui.field(form.ambientTemp, 'Ambient temperature (°C)', 'Air temperature in °C, from 0 to 40.', {min: 0, max: 40}) }}
                     {{ ui.field(form.trackTemp, 'Track temperature (°C)', 'Track surface temperature in °C, from 0 to 55 — usually a few degrees above ambient.', {min: 0, max: 55}) }}
@@ -124,35 +134,154 @@
     {{ parent() }}
     <script>
         (() => {
-            const collection = document.querySelector('[data-collection]');
-            if (!collection) {
+            const container = document.querySelector('[data-cars]');
+            if (!container) {
                 return;
             }
 
-            const rows = collection.querySelector('[data-collection-rows]');
-            const addButton = collection.querySelector('[data-collection-add]');
-            let index = parseInt(collection.dataset.index, 10);
+            const name = container.dataset.carsName;
+            let options = [];
+            try {
+                options = JSON.parse(container.dataset.carsOptions);
+            } catch (error) {
+                options = [];
+            }
 
-            const wireRemove = (row) => {
-                const removeButton = row.querySelector('[data-collection-remove]');
-                if (removeButton) {
-                    removeButton.addEventListener('click', () => row.remove());
+            const search = container.querySelector('[data-cars-search]');
+            const suggestions = container.querySelector('[data-cars-suggestions]');
+            const list = container.querySelector('[data-cars-list]');
+            let index = list.querySelectorAll('[data-cars-row]').length;
+
+            // The car names currently shown as suggestions, and which one is keyboard-highlighted (-1 = none).
+            let matches = [];
+            let activeIndex = -1;
+
+            const removeRow = (button) => button.closest('[data-cars-row]').remove();
+
+            const addCar = (value) => {
+                const row = document.createElement('li');
+                row.className = 'flex items-center gap-2';
+                row.setAttribute('data-cars-row', '');
+
+                const label = document.createElement('span');
+                label.className = 'flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg';
+                label.textContent = value;
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = `${name}[${index}]`;
+                input.value = value;
+                index += 1;
+
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.setAttribute('data-cars-remove', '');
+                remove.className = 'rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg';
+                remove.textContent = 'Remove';
+                remove.addEventListener('click', () => removeRow(remove));
+
+                row.append(label, input, remove);
+                list.appendChild(row);
+            };
+
+            const closeSuggestions = () => {
+                suggestions.replaceChildren();
+                suggestions.classList.add('hidden');
+                search.setAttribute('aria-expanded', 'false');
+                search.removeAttribute('aria-activedescendant');
+                matches = [];
+                activeIndex = -1;
+            };
+
+            const highlight = (nextIndex) => {
+                const items = suggestions.children;
+                if (activeIndex >= 0 && items[activeIndex]) {
+                    items[activeIndex].setAttribute('aria-selected', 'false');
+                    items[activeIndex].classList.remove('bg-surface-hover');
+                }
+
+                activeIndex = nextIndex;
+
+                if (activeIndex >= 0 && items[activeIndex]) {
+                    const active = items[activeIndex];
+                    active.setAttribute('aria-selected', 'true');
+                    active.classList.add('bg-surface-hover');
+                    active.scrollIntoView({block: 'nearest'});
+                    search.setAttribute('aria-activedescendant', active.id);
+                } else {
+                    search.removeAttribute('aria-activedescendant');
                 }
             };
 
-            rows.querySelectorAll('[data-collection-row]').forEach(wireRemove);
+            const pick = (value) => {
+                addCar(value);
+                search.value = '';
+                closeSuggestions();
+                search.focus();
+            };
 
-            addButton.addEventListener('click', () => {
-                const widget = collection.dataset.prototype.replace(/__name__/g, String(index));
-                index += 1;
+            const renderSuggestions = () => {
+                const query = search.value.trim().toLowerCase();
+                suggestions.replaceChildren();
+                activeIndex = -1;
+                search.removeAttribute('aria-activedescendant');
 
-                const row = document.createElement('div');
-                row.className = 'flex items-center gap-2';
-                row.setAttribute('data-collection-row', '');
-                row.innerHTML = widget
-                    + '<button type="button" data-collection-remove class="rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">Remove</button>';
-                rows.appendChild(row);
-                wireRemove(row);
+                // Empty query lists every installed car; typing filters it. The list scrolls (max-h-56).
+                matches = query === '' ? options.slice() : options.filter((option) => option.toLowerCase().includes(query));
+                if (matches.length === 0) {
+                    suggestions.classList.add('hidden');
+                    search.setAttribute('aria-expanded', 'false');
+                    return;
+                }
+
+                matches.forEach((match, matchIndex) => {
+                    const option = document.createElement('li');
+                    option.id = `cars-option-${matchIndex}`;
+                    option.setAttribute('role', 'option');
+                    option.setAttribute('aria-selected', 'false');
+                    option.className = 'cursor-pointer px-3 py-2 text-sm text-fg hover:bg-surface-hover';
+                    option.textContent = match;
+                    option.addEventListener('mouseenter', () => highlight(matchIndex));
+                    // mousedown (not click) so the pick registers before the search input's blur closes the list.
+                    option.addEventListener('mousedown', (event) => {
+                        event.preventDefault();
+                        pick(match);
+                    });
+                    suggestions.appendChild(option);
+                });
+
+                suggestions.classList.remove('hidden');
+                search.setAttribute('aria-expanded', 'true');
+            };
+
+            search.addEventListener('input', renderSuggestions);
+            search.addEventListener('focus', renderSuggestions);
+            search.addEventListener('blur', () => window.setTimeout(closeSuggestions, 100));
+
+            search.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    if (matches.length === 0) {
+                        renderSuggestions();
+                    } else {
+                        highlight((activeIndex + 1) % matches.length);
+                    }
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    if (matches.length > 0) {
+                        highlight((activeIndex - 1 + matches.length) % matches.length);
+                    }
+                } else if (event.key === 'Enter' && activeIndex >= 0) {
+                    // Only intercept Enter when a suggestion is highlighted, so the form still submits otherwise.
+                    event.preventDefault();
+                    pick(matches[activeIndex]);
+                } else if (event.key === 'Escape') {
+                    closeSuggestions();
+                }
+            });
+
+            list.querySelectorAll('[data-cars-remove]').forEach((button) => {
+                button.addEventListener('click', () => removeRow(button));
             });
         })();
     </script>
