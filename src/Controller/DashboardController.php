@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Repository\ServerRepository;
+use App\Repository\ServerRepositoryInterface;
 use App\Service\DockerServiceInterface;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,7 +31,7 @@ final class DashboardController extends AbstractController
     private const string STATUS_UNKNOWN = 'unknown';
 
     public function __construct(
-        private readonly ServerRepository $serverRepository,
+        private readonly ServerRepositoryInterface $serverRepository,
         private readonly DockerServiceInterface $dockerService,
     ) {
     }

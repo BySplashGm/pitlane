@@ -17,7 +17,7 @@ use App\Dto\ServerFormData;
 use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
-use App\Repository\ServerRepository;
+use App\Repository\ServerRepositoryInterface;
 use App\Validator\ContainerSlug;
 use App\Validator\ContainerSlugValidator;
 use Override;
@@ -139,7 +139,7 @@ final class ContainerSlugValidatorTest extends ConstraintValidatorTestCase
     #[Override]
     protected function createValidator(): ConstraintValidatorInterface
     {
-        $serverRepository = self::createStub(ServerRepository::class);
+        $serverRepository = self::createStub(ServerRepositoryInterface::class);
         $serverRepository->method('findBySlug')->willReturnCallback(
             fn (string $slug): ?Server => $slug === $this->existingSlug ? $this->makeServer($this->existingServerId) : null,
         );

@@ -18,19 +18,19 @@ use App\Entity\User;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Enum\UserRole;
-use App\Repository\DoctrineServerRepository;
+use App\Repository\ServerRepository;
 use App\Tests\Support\ResetsDatabase;
 use Doctrine\ORM\EntityManagerInterface;
 use Override;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class DoctrineServerRepositoryTest extends KernelTestCase
+final class ServerRepositoryTest extends KernelTestCase
 {
     use ResetsDatabase;
 
     private EntityManagerInterface $entityManager;
 
-    private DoctrineServerRepository $doctrineServerRepository;
+    private ServerRepository $serverRepository;
 
     #[Override]
     protected function setUp(): void
@@ -39,7 +39,7 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
 
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
-        $this->doctrineServerRepository = self::getContainer()->get(DoctrineServerRepository::class);
+        $this->serverRepository = self::getContainer()->get(ServerRepository::class);
 
         $this->truncateUsers($this->entityManager);
         $this->truncateServers($this->entityManager);
@@ -49,11 +49,11 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
     {
         $server = $this->buildServer('Spa Endurance');
 
-        $this->doctrineServerRepository->save($server);
+        $this->serverRepository->save($server);
         // Clearing drops every managed entity: the server is only found again if save() flushed it.
         $this->entityManager->clear();
 
-        $reloaded = $this->doctrineServerRepository->findBySlug('spa-endurance');
+        $reloaded = $this->serverRepository->findBySlug('spa-endurance');
         self::assertInstanceOf(Server::class, $reloaded);
         self::assertSame('Spa Endurance', $reloaded->getName());
     }
@@ -64,14 +64,14 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
         // not just return the first row it finds.
         $this->persistServer('Spa Endurance');
 
-        self::assertNull($this->doctrineServerRepository->findBySlug('unknown-slug'));
+        self::assertNull($this->serverRepository->findBySlug('unknown-slug'));
     }
 
     public function test_find_by_slug_returns_the_matching_server(): void
     {
         $this->persistServer('Spa Endurance');
 
-        $reloaded = $this->doctrineServerRepository->findBySlug('spa-endurance');
+        $reloaded = $this->serverRepository->findBySlug('spa-endurance');
 
         self::assertInstanceOf(Server::class, $reloaded);
         self::assertSame('Spa Endurance', $reloaded->getName());
@@ -85,7 +85,7 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
 
         $names = array_map(
             static fn (Server $server): string => $server->getName(),
-            $this->doctrineServerRepository->findAllOrderedByName(),
+            $this->serverRepository->findAllOrderedByName(),
         );
 
         self::assertSame(['Anderstorp Cup', 'Monza Trophy', 'Zolder Sprint'], $names);
@@ -117,7 +117,7 @@ final class DoctrineServerRepositoryTest extends KernelTestCase
 
         $names = array_map(
             static fn (Server $server): string => $server->getName(),
-            $this->doctrineServerRepository->findAssignedTo($reloaded),
+            $this->serverRepository->findAssignedTo($reloaded),
         );
 
         self::assertSame(['Anderstorp Cup', 'Zolder Sprint'], $names);

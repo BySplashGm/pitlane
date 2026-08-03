@@ -15,7 +15,7 @@ namespace App\Tests\Command;
 
 use App\Entity\User;
 use App\Enum\UserRole;
-use App\Repository\UserRepository;
+use App\Repository\UserRepositoryInterface;
 use App\Tests\Support\ResetsDatabase;
 use Doctrine\ORM\EntityManagerInterface;
 use Override;
@@ -60,7 +60,7 @@ final class CreateOwnerCommandTest extends KernelTestCase
         self::assertStringContainsString('This value is too short.', $display);
         self::assertStringContainsString('Owner account "owner@pitlane.test" created.', $display);
 
-        $userRepository = self::getContainer()->get(UserRepository::class);
+        $userRepository = self::getContainer()->get(UserRepositoryInterface::class);
         $owner = $userRepository->findOneBy(['email' => 'owner@pitlane.test']);
         self::assertInstanceOf(User::class, $owner);
         self::assertSame(UserRole::Owner, $owner->getRole());

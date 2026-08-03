@@ -15,13 +15,13 @@ namespace App\Service;
 
 use App\Entity\Server;
 use App\Port\ReservedPorts;
-use App\Repository\ServerRepository;
+use App\Repository\ServerRepositoryInterface;
 use Override;
 
 final readonly class PortConflictService implements PortConflictServiceInterface
 {
     public function __construct(
-        private ServerRepository $serverRepository,
+        private ServerRepositoryInterface $serverRepository,
     ) {
     }
 

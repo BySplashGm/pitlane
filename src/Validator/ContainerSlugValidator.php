@@ -15,7 +15,7 @@ namespace App\Validator;
 
 use App\Dto\ServerFormData;
 use App\Entity\Server;
-use App\Repository\ServerRepository;
+use App\Repository\ServerRepositoryInterface;
 use App\Slug\ContainerSlugger;
 use Override;
 use Symfony\Component\Validator\Constraint;
@@ -33,7 +33,7 @@ final class ContainerSlugValidator extends ConstraintValidator
     private const array RESERVED_SLUGS = ['postgres', 'pitlane', 'app', 'db'];
 
     public function __construct(
-        private readonly ServerRepository $serverRepository,
+        private readonly ServerRepositoryInterface $serverRepository,
     ) {
     }
 

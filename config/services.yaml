@@ -21,8 +21,8 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
-    App\Repository\ServerRepository: '@App\Repository\DoctrineServerRepository'
-    App\Repository\UserRepository: '@App\Repository\DoctrineUserRepository'
+    App\Repository\ServerRepositoryInterface: '@App\Repository\ServerRepository'
+    App\Repository\UserRepositoryInterface: '@App\Repository\UserRepository'
     App\Service\AcConfigServiceInterface: '@App\Service\AcConfigService'
     App\Service\AcContentServiceInterface: '@App\Service\AcContentService'
     App\Service\DockerServiceInterface: '@App\Service\DockerService'

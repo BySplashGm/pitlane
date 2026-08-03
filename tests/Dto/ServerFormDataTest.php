@@ -16,7 +16,7 @@ namespace App\Tests\Dto;
 use App\Dto\ServerFormData;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
-use App\Repository\ServerRepository;
+use App\Repository\ServerRepositoryInterface;
 use App\Validator\ContainerSlug;
 use App\Validator\ContainerSlugValidator;
 use App\Validator\IniSafeValue;
@@ -334,11 +334,11 @@ final class ServerFormDataTest extends TestCase
      */
     private function validator(): ValidatorInterface
     {
-        $serverRepository = self::createStub(ServerRepository::class);
+        $serverRepository = self::createStub(ServerRepositoryInterface::class);
 
         $constraintValidatorFactory = new class($serverRepository) extends ConstraintValidatorFactory {
             public function __construct(
-                private readonly ServerRepository $serverRepository,
+                private readonly ServerRepositoryInterface $serverRepository,
             ) {
                 parent::__construct();
             }
