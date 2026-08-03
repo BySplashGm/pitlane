@@ -95,10 +95,20 @@ final class ServerFormData
     #[IniSafeValue]
     public ?string $password = null;
 
-    #[Assert\NotBlank]
-    #[Assert\Length(min: 8, minMessage: 'The admin password must be at least {{ limit }} characters long.')]
+    /**
+     * On create the admin password is required. On edit the field is left blank to mean "keep the
+     * current one", so the stored secret is never rendered back into the form; {@see $currentAdminPassword}
+     * carries it for validation and {@see applyTo()}. Length and the "differ from the join password"
+     * rule are enforced by {@see validateAdminPassword()} against the effective value.
+     */
     #[IniSafeValue]
     public string $adminPassword = '';
+
+    /**
+     * The current admin password on edit, seeded by {@see fromServer()} and never added to the form, so
+     * a blank admin-password field can keep the current one without emitting the secret to the browser.
+     */
+    public ?string $currentAdminPassword = null;
 
     #[Assert\Range(min: 1, max: 64)]
     public int $maxClients = 12;
@@ -165,18 +175,50 @@ final class ServerFormData
     }
 
     /**
-     * Rejects an admin password equal to the join password: a join password is shared with every
-     * driver, so reusing it as the admin password would hand admin rights to the whole grid. A blank
+     * Enforces the admin-password rules against the effective value (the submitted one, or the current
+     * one kept when the edit form leaves the field blank): required on create, at least 8 characters
+     * when a new one is set, and never equal to the join password. A join password is shared with every
+     * driver, so reusing it as the admin password would hand admin rights to the whole grid; a blank
      * join password means the server is open, and is not compared.
      */
     #[Assert\Callback]
     public function validateAdminPassword(ExecutionContextInterface $executionContext): void
     {
-        if (null !== $this->password && '' !== $this->password && $this->password === $this->adminPassword) {
+        // On create the admin password is mandatory; on edit a blank field keeps the current one. The
+        // rules below are independent guards, each a no-op on a blank field, so no early return is
+        // needed once this one has fired.
+        if ('' === $this->adminPassword && null === $this->serverId) {
+            $executionContext->buildViolation('The admin password is required.')
+                ->atPath('adminPassword')
+                ->addViolation();
+        }
+
+        // A newly submitted admin password must be long enough (counted in characters, not bytes); a
+        // kept one already is.
+        if ('' !== $this->adminPassword && mb_strlen($this->adminPassword) < 8) {
+            $executionContext->buildViolation('The admin password must be at least 8 characters long.')
+                ->atPath('adminPassword')
+                ->addViolation();
+        }
+
+        // The effective admin password (submitted, or kept on edit) must differ from a set join
+        // password: it is shared with every driver, so a match would hand admin rights to the grid. An
+        // open server has no join password to compare: a blank one is excluded by the '' !== check, a
+        // null one by the equality, since a string admin password can never equal null.
+        if ('' !== $this->password && $this->password === $this->effectiveAdminPassword()) {
             $executionContext->buildViolation('The admin password must differ from the join password.')
                 ->atPath('adminPassword')
                 ->addViolation();
         }
+    }
+
+    /**
+     * The admin password that will be persisted: the submitted one, or the current one kept when the
+     * edit form left the field blank.
+     */
+    public function effectiveAdminPassword(): string
+    {
+        return '' === $this->adminPassword ? ($this->currentAdminPassword ?? '') : $this->adminPassword;
     }
 
     /**
@@ -217,8 +259,11 @@ final class ServerFormData
         $serverFormData->track = $server->getTrack();
         $serverFormData->trackLayout = $server->getTrackLayout();
         $serverFormData->cars = $server->getCars();
+        // The join password is shared with every driver, so it is pre-filled like any other field. The
+        // admin password is a genuine secret: keep the field blank and carry the current value aside so
+        // it is never rendered back into the form.
         $serverFormData->password = $server->getPassword();
-        $serverFormData->adminPassword = $server->getAdminPassword();
+        $serverFormData->currentAdminPassword = $server->getAdminPassword();
         $serverFormData->maxClients = $server->getMaxClients();
         $serverFormData->tcpPort = $server->getTcpPort();
         $serverFormData->udpPort = $server->getUdpPort();
@@ -281,7 +326,7 @@ final class ServerFormData
             ->setTrackLayout($this->trackLayout)
             ->setCars(array_values($this->cars))
             ->setPassword($this->password ?? '')
-            ->setAdminPassword($this->adminPassword)
+            ->setAdminPassword($this->effectiveAdminPassword())
             ->setMaxClients($this->maxClients)
             ->setTcpPort($this->tcpPort)
             ->setUdpPort($this->udpPort)

@@ -331,6 +331,9 @@ final class ServerControllerTest extends WebTestCase
         self::assertSame('9610', $crawler->filter('input[name="server[tcpPort]"]')->attr('value'));
         // The pre-filled car is rendered as a hidden row input by the shared form partial.
         self::assertSame('ks_ferrari_488_gt3', $crawler->filter('input[name^="server[cars]"]')->attr('value'));
+        // The admin password is a secret: the field is blank and the stored value never reaches the page.
+        self::assertSame('', $crawler->filter('input[name="server[adminPassword]"]')->attr('value') ?? '');
+        self::assertStringNotContainsString('admin-secret', (string) $this->kernelBrowser->getResponse()->getContent());
     }
 
     public function test_a_valid_edit_updates_the_server_writes_its_config_and_redirects(): void
@@ -370,6 +373,38 @@ final class ServerControllerTest extends WebTestCase
         self::assertSame(['ks_ferrari_488_gt3', 'ks_porsche_911'], $updated->getCars());
         // Renaming does not move the config directory: the slug stays as first generated.
         self::assertSame('before-rename', $updated->getContainerSlug());
+    }
+
+    public function test_a_valid_edit_keeps_the_admin_password_when_the_field_is_left_blank(): void
+    {
+        $server = $this->persistServer('Keep Admin', portOffset: 18);
+        $id = (int) $server->getId();
+
+        $acConfigService = $this->createMock(AcConfigServiceInterface::class);
+        $acConfigService->expects(self::once())->method('writeConfig');
+        self::getContainer()->set(AcConfigServiceInterface::class, $acConfigService);
+
+        $this->stubDocker(status: 'stopped');
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+
+        $payload = $this->validPayload();
+        $payload['name'] = 'Kept Admin';
+        // Submit the admin password blank: the stored one must be preserved, not blanked.
+        $payload['adminPassword'] = '';
+        $payload['tcpPort'] = '9618';
+        $payload['udpPort'] = '9718';
+        $payload['httpPort'] = '8099';
+        $this->submitEditForm($id, $payload);
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+
+        $this->entityManager->clear();
+        $updated = $this->entityManager->getRepository(Server::class)->find($id);
+        self::assertInstanceOf(Server::class, $updated);
+        self::assertSame('Kept Admin', $updated->getName());
+        self::assertSame('admin-secret', $updated->getAdminPassword());
     }
 
     public function test_an_edit_port_conflict_is_reported_without_persisting(): void

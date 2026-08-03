@@ -23,6 +23,10 @@
 
 {% import _self as ui %}
 
+{# On edit the admin password field is intentionally left blank and means "keep the current one": the
+   stored secret is never rendered back into the form. serverId is only set on the edit form model. #}
+{% set editing = form.vars.value.serverId is not null %}
+
 {{ form_errors(form) }}
 
 <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
@@ -70,7 +74,11 @@
 <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
     <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Access</legend>
     {{ ui.field(form.password, 'Join password', 'Leave blank for an open server.') }}
-    {{ ui.field(form.adminPassword, 'Admin password', null) }}
+    {% if editing %}
+        {{ ui.field(form.adminPassword, 'Admin password', 'Leave blank to keep the current admin password.', {placeholder: 'Leave blank to keep current'}) }}
+    {% else %}
+        {{ ui.field(form.adminPassword, 'Admin password', null) }}
+    {% endif %}
     {{ ui.field(form.maxClients, 'Max clients', null, {min: 1, max: 64}) }}
 </fieldset>
 
