@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace App\Tests\Dto;
 
 use App\Dto\ServerFormData;
+use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Repository\ServerRepositoryInterface;
@@ -47,6 +48,7 @@ final class ServerFormDataTest extends TestCase
         self::assertSame([], $serverFormData->availableWeatherGraphics);
         self::assertNull($serverFormData->password);
         self::assertSame('', $serverFormData->adminPassword);
+        self::assertNull($serverFormData->currentAdminPassword);
         self::assertSame(12, $serverFormData->maxClients);
         self::assertSame(0, $serverFormData->tcpPort);
         self::assertSame(0, $serverFormData->udpPort);
@@ -141,6 +143,143 @@ final class ServerFormDataTest extends TestCase
         self::assertSame('', $server->getWeatherGraphics());
     }
 
+    public function test_from_server_maps_every_field(): void
+    {
+        $server = $this->makeServer(id: 42);
+
+        $serverFormData = ServerFormData::fromServer($server);
+
+        self::assertSame(42, $serverFormData->serverId);
+        self::assertSame('Monza Cup', $serverFormData->name);
+        self::assertSame('Pitlane Monza', $serverFormData->serverName);
+        self::assertSame('monza', $serverFormData->track);
+        self::assertSame('monza_junior', $serverFormData->trackLayout);
+        self::assertSame(['ferrari_488', 'porsche_911'], $serverFormData->cars);
+        self::assertSame('join-secret', $serverFormData->password);
+        // The admin password is carried aside and the rendered field stays blank, so the secret is
+        // never emitted back into the edit form.
+        self::assertSame('', $serverFormData->adminPassword);
+        self::assertSame('admin-secret', $serverFormData->currentAdminPassword);
+        self::assertSame(18, $serverFormData->maxClients);
+        self::assertSame(9600, $serverFormData->tcpPort);
+        self::assertSame(9601, $serverFormData->udpPort);
+        self::assertSame(9602, $serverFormData->httpPort);
+        self::assertSame(SessionType::Qualify, $serverFormData->sessionType);
+        self::assertSame(30, $serverFormData->sessionDuration);
+        self::assertSame(DurationUnit::Laps, $serverFormData->durationUnit);
+        self::assertSame('3_clear', $serverFormData->weatherGraphics);
+        self::assertSame(24, $serverFormData->ambientTemp);
+        self::assertSame(30, $serverFormData->trackTemp);
+        self::assertTrue($serverFormData->dynamicTrack);
+        self::assertSame(95, $serverFormData->trackGrip);
+        self::assertFalse($serverFormData->tcpNoDelay);
+        self::assertFalse($serverFormData->registerToLobby);
+    }
+
+    public function test_apply_to_writes_every_field_onto_the_existing_server(): void
+    {
+        // The target starts with values distinct from the form's, so every assertion proves a write.
+        $server = $this->makeServer(id: 7);
+
+        $serverFormData = new ServerFormData();
+        $serverFormData->name = 'Spa Enduro';
+        $serverFormData->serverName = 'Pitlane Spa';
+        $serverFormData->track = 'spa';
+        $serverFormData->trackLayout = 'spa_gp';
+        $serverFormData->cars = ['mclaren_720', 'bmw_m4'];
+        $serverFormData->password = 'new-join';
+        $serverFormData->adminPassword = 'new-admin';
+        $serverFormData->maxClients = 24;
+        $serverFormData->tcpPort = 9700;
+        $serverFormData->udpPort = 9701;
+        $serverFormData->httpPort = 9702;
+        $serverFormData->sessionType = SessionType::Race;
+        $serverFormData->sessionDuration = 45;
+        $serverFormData->durationUnit = DurationUnit::Minutes;
+        $serverFormData->weatherGraphics = '5_light_clouds';
+        $serverFormData->ambientTemp = 15;
+        $serverFormData->trackTemp = 20;
+        $serverFormData->dynamicTrack = false;
+        $serverFormData->trackGrip = 80;
+        $serverFormData->tcpNoDelay = true;
+        $serverFormData->registerToLobby = true;
+
+        $serverFormData->applyTo($server);
+
+        self::assertSame('Spa Enduro', $server->getName());
+        self::assertSame('Pitlane Spa', $server->getServerName());
+        self::assertSame('spa', $server->getTrack());
+        self::assertSame('spa_gp', $server->getTrackLayout());
+        self::assertSame(['mclaren_720', 'bmw_m4'], $server->getCars());
+        self::assertSame('new-join', $server->getPassword());
+        self::assertSame('new-admin', $server->getAdminPassword());
+        self::assertSame(24, $server->getMaxClients());
+        self::assertSame(9700, $server->getTcpPort());
+        self::assertSame(9701, $server->getUdpPort());
+        self::assertSame(9702, $server->getHttpPort());
+        self::assertSame(SessionType::Race, $server->getSessionType());
+        self::assertSame(45, $server->getSessionDuration());
+        self::assertSame(DurationUnit::Minutes, $server->getDurationUnit());
+        self::assertSame('5_light_clouds', $server->getWeatherGraphics());
+        self::assertSame(15, $server->getAmbientTemp());
+        self::assertSame(20, $server->getTrackTemp());
+        self::assertFalse($server->isDynamicTrack());
+        self::assertSame(80, $server->getTrackGrip());
+        self::assertTrue($server->isTcpNoDelay());
+        self::assertTrue($server->isRegisterToLobby());
+    }
+
+    public function test_apply_to_reindexes_the_cars_into_a_list(): void
+    {
+        $server = $this->makeServer(id: 7);
+
+        $serverFormData = new ServerFormData();
+        // A removed row leaves an index gap; the entity must receive a clean, re-indexed list.
+        $serverFormData->cars = [0 => 'ferrari_488', 2 => 'porsche_911'];
+
+        $serverFormData->applyTo($server);
+
+        self::assertSame(['ferrari_488', 'porsche_911'], $server->getCars());
+    }
+
+    public function test_apply_to_defaults_a_null_join_password_track_and_weather_to_empty_strings(): void
+    {
+        $server = $this->makeServer(id: 7);
+
+        // A fresh form model leaves these three nullable; the non-null entity setters must get ''.
+        new ServerFormData()->applyTo($server);
+
+        self::assertSame('', $server->getPassword());
+        self::assertSame('', $server->getTrack());
+        self::assertSame('', $server->getWeatherGraphics());
+    }
+
+    public function test_apply_to_keeps_the_current_admin_password_when_the_field_is_left_blank(): void
+    {
+        $server = $this->makeServer(id: 7);
+
+        // The edit form leaves the admin field blank to keep the current password; only the name changes.
+        $serverFormData = ServerFormData::fromServer($server);
+        $serverFormData->name = 'Renamed';
+
+        $serverFormData->applyTo($server);
+
+        self::assertSame('Renamed', $server->getName());
+        self::assertSame('admin-secret', $server->getAdminPassword());
+    }
+
+    public function test_apply_to_replaces_the_admin_password_when_a_new_one_is_submitted(): void
+    {
+        $server = $this->makeServer(id: 7);
+
+        $serverFormData = ServerFormData::fromServer($server);
+        $serverFormData->adminPassword = 'brand-new-admin';
+
+        $serverFormData->applyTo($server);
+
+        self::assertSame('brand-new-admin', $server->getAdminPassword());
+    }
+
     public function test_the_name_field_carries_the_container_slug_constraint(): void
     {
         $attributes = new ReflectionProperty(ServerFormData::class, 'name')->getAttributes(ContainerSlug::class);
@@ -214,8 +353,11 @@ final class ServerFormDataTest extends TestCase
 
     public function test_valid_admin_password_raises_no_admin_password_violation(): void
     {
+        // validFormData() is a create (no serverId) with a valid admin password: none of the three
+        // admin-password rules should fire.
         $violations = $this->violations($this->validFormData());
 
+        self::assertNotContains('adminPassword: The admin password is required.', $violations);
         self::assertNotContains('adminPassword: The admin password must be at least 8 characters long.', $violations);
         self::assertNotContains('adminPassword: The admin password must differ from the join password.', $violations);
     }
@@ -262,6 +404,56 @@ final class ServerFormDataTest extends TestCase
         self::assertNotContains('adminPassword: The admin password must differ from the join password.', $this->violations($serverFormData));
     }
 
+    public function test_the_admin_password_is_required_on_create(): void
+    {
+        // No serverId: this is a create, where a blank admin password is rejected.
+        $serverFormData = $this->validFormData();
+        $serverFormData->adminPassword = '';
+
+        self::assertContains('adminPassword: The admin password is required.', $this->violations($serverFormData));
+    }
+
+    public function test_a_blank_admin_password_is_allowed_on_edit_to_keep_the_current_one(): void
+    {
+        $serverFormData = $this->editFormData();
+        $serverFormData->adminPassword = '';
+
+        $violations = $this->violations($serverFormData);
+
+        self::assertNotContains('adminPassword: The admin password is required.', $violations);
+        self::assertNotContains('adminPassword: The admin password must be at least 8 characters long.', $violations);
+    }
+
+    public function test_a_short_new_admin_password_is_rejected_on_edit(): void
+    {
+        $serverFormData = $this->editFormData();
+        $serverFormData->adminPassword = 'shortpw';
+
+        self::assertContains('adminPassword: The admin password must be at least 8 characters long.', $this->violations($serverFormData));
+    }
+
+    public function test_a_short_multibyte_admin_password_is_measured_in_characters(): void
+    {
+        // 'é' is one character but two bytes: the 8-character minimum counts characters, not bytes, so
+        // seven of them are rejected even though the byte length is fourteen.
+        $serverFormData = $this->editFormData();
+        $serverFormData->adminPassword = 'ééééééé';
+
+        self::assertContains('adminPassword: The admin password must be at least 8 characters long.', $this->violations($serverFormData));
+    }
+
+    public function test_a_kept_admin_password_matching_a_changed_join_password_is_rejected(): void
+    {
+        // Blank-to-keep must not let a newly set join password slip past the "admin must differ" rule:
+        // the check runs against the effective (kept) admin password, not the blank field.
+        $serverFormData = $this->editFormData();
+        $serverFormData->currentAdminPassword = 'shared-secret';
+        $serverFormData->adminPassword = '';
+        $serverFormData->password = 'shared-secret';
+
+        self::assertContains('adminPassword: The admin password must differ from the join password.', $this->violations($serverFormData));
+    }
+
     public function test_an_installed_track_car_and_weather_raise_no_choice_violation(): void
     {
         $violations = $this->violations($this->validFormData());
@@ -295,6 +487,42 @@ final class ServerFormDataTest extends TestCase
         self::assertContains('weatherGraphics: The value you selected is not a valid choice.', $this->violations($serverFormData));
     }
 
+    /**
+     * A fully-populated server carrying an id, for the edit round-trip. Booleans and numbers differ
+     * from the {@see ServerFormData} defaults so a dropped copy in fromServer() shows up as a failure.
+     */
+    private function makeServer(int $id): Server
+    {
+        $server = new Server(
+            'Monza Cup',
+            'Pitlane Monza',
+            'monza',
+            'monza_junior',
+            ['ferrari_488', 'porsche_911'],
+            'join-secret',
+            'admin-secret',
+            18,
+            9600,
+            9601,
+            9602,
+            SessionType::Qualify,
+            30,
+            DurationUnit::Laps,
+            '3_clear',
+            24,
+            30,
+            true,
+            95,
+            false,
+            false,
+        );
+
+        // The id is DB-generated and has no setter; the edit path reads it, so seed it via reflection.
+        new ReflectionProperty(Server::class, 'id')->setValue($server, $id);
+
+        return $server;
+    }
+
     private function validFormData(): ServerFormData
     {
         $serverFormData = new ServerFormData();
@@ -310,6 +538,19 @@ final class ServerFormDataTest extends TestCase
         $serverFormData->tcpPort = 9600;
         $serverFormData->udpPort = 9601;
         $serverFormData->httpPort = 9602;
+
+        return $serverFormData;
+    }
+
+    /**
+     * Like {@see validFormData()} but for an edit: the row carries an id and a kept admin password, so
+     * a blank adminPassword field is valid and means "keep the current one".
+     */
+    private function editFormData(): ServerFormData
+    {
+        $serverFormData = $this->validFormData();
+        $serverFormData->serverId = 7;
+        $serverFormData->currentAdminPassword = 'kept-admin-secret';
 
         return $serverFormData;
     }

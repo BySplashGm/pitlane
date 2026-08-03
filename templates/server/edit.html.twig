@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit {{ server.name }} · Pitlane{% endblock %}
+
+{% block body %}
+    <div class="mx-auto max-w-3xl">
+        <a href="{{ path('app_server_show', {id: server.id}) }}" class="inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-fg">
+            <span aria-hidden="true">&larr;</span> Back to server
+        </a>
+
+        <div class="mb-6 mt-4">
+            <h1 class="text-2xl font-semibold tracking-tight text-fg">Edit server</h1>
+            <p class="mt-1 truncate text-sm text-muted" title="{{ server.name }}">Update the configuration of {{ server.name }}.</p>
+        </div>
+
+        {% if running %}
+            <div role="alert" class="mb-6 rounded-lg border border-amber-800 bg-amber-950 p-4 text-sm text-amber-300">
+                This server is running. Your changes are saved immediately but only take effect after the server is restarted.
+            </div>
+        {% endif %}
+
+        {{ form_start(form, {attr: {class: 'flex flex-col gap-8'}}) }}
+            {% include 'server/_form.html.twig' %}
+
+            <div class="flex items-center justify-end gap-3">
+                <a href="{{ path('app_server_show', {id: server.id}) }}" class="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">Cancel</a>
+                <button type="submit" class="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90">Save changes</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ parent() }}
+    {% include 'server/_form_scripts.html.twig' %}
+{% endblock %}

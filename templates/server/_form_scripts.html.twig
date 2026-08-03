@@ -1,0 +1,155 @@
+{# Cars search-and-add picker for the shared server form (_form.html.twig). Included in each page's
+   {% block scripts %}. Progressive enhancement: the hidden car rows submit fine without it. #}
+<script>
+    (() => {
+        const container = document.querySelector('[data-cars]');
+        if (!container) {
+            return;
+        }
+
+        const name = container.dataset.carsName;
+        let options = [];
+        try {
+            options = JSON.parse(container.dataset.carsOptions);
+        } catch (error) {
+            options = [];
+        }
+
+        const search = container.querySelector('[data-cars-search]');
+        const suggestions = container.querySelector('[data-cars-suggestions]');
+        const list = container.querySelector('[data-cars-list]');
+        let index = list.querySelectorAll('[data-cars-row]').length;
+
+        // The car names currently shown as suggestions, and which one is keyboard-highlighted (-1 = none).
+        let matches = [];
+        let activeIndex = -1;
+
+        const removeRow = (button) => button.closest('[data-cars-row]').remove();
+
+        const addCar = (value) => {
+            const row = document.createElement('li');
+            row.className = 'flex items-center gap-2';
+            row.setAttribute('data-cars-row', '');
+
+            const label = document.createElement('span');
+            label.className = 'flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg';
+            label.textContent = value;
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `${name}[${index}]`;
+            input.value = value;
+            index += 1;
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.setAttribute('data-cars-remove', '');
+            remove.className = 'rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg';
+            remove.textContent = 'Remove';
+            remove.addEventListener('click', () => removeRow(remove));
+
+            row.append(label, input, remove);
+            list.appendChild(row);
+        };
+
+        const closeSuggestions = () => {
+            suggestions.replaceChildren();
+            suggestions.classList.add('hidden');
+            search.setAttribute('aria-expanded', 'false');
+            search.removeAttribute('aria-activedescendant');
+            matches = [];
+            activeIndex = -1;
+        };
+
+        const highlight = (nextIndex) => {
+            const items = suggestions.children;
+            if (activeIndex >= 0 && items[activeIndex]) {
+                items[activeIndex].setAttribute('aria-selected', 'false');
+                items[activeIndex].classList.remove('bg-surface-hover');
+            }
+
+            activeIndex = nextIndex;
+
+            if (activeIndex >= 0 && items[activeIndex]) {
+                const active = items[activeIndex];
+                active.setAttribute('aria-selected', 'true');
+                active.classList.add('bg-surface-hover');
+                active.scrollIntoView({block: 'nearest'});
+                search.setAttribute('aria-activedescendant', active.id);
+            } else {
+                search.removeAttribute('aria-activedescendant');
+            }
+        };
+
+        const pick = (value) => {
+            addCar(value);
+            search.value = '';
+            closeSuggestions();
+            search.focus();
+        };
+
+        const renderSuggestions = () => {
+            const query = search.value.trim().toLowerCase();
+            suggestions.replaceChildren();
+            activeIndex = -1;
+            search.removeAttribute('aria-activedescendant');
+
+            // Empty query lists every installed car; typing filters it. The list scrolls (max-h-56).
+            matches = query === '' ? options.slice() : options.filter((option) => option.toLowerCase().includes(query));
+            if (matches.length === 0) {
+                suggestions.classList.add('hidden');
+                search.setAttribute('aria-expanded', 'false');
+                return;
+            }
+
+            matches.forEach((match, matchIndex) => {
+                const option = document.createElement('li');
+                option.id = `cars-option-${matchIndex}`;
+                option.setAttribute('role', 'option');
+                option.setAttribute('aria-selected', 'false');
+                option.className = 'cursor-pointer px-3 py-2 text-sm text-fg hover:bg-surface-hover';
+                option.textContent = match;
+                option.addEventListener('mouseenter', () => highlight(matchIndex));
+                // mousedown (not click) so the pick registers before the search input's blur closes the list.
+                option.addEventListener('mousedown', (event) => {
+                    event.preventDefault();
+                    pick(match);
+                });
+                suggestions.appendChild(option);
+            });
+
+            suggestions.classList.remove('hidden');
+            search.setAttribute('aria-expanded', 'true');
+        };
+
+        search.addEventListener('input', renderSuggestions);
+        search.addEventListener('focus', renderSuggestions);
+        search.addEventListener('blur', () => window.setTimeout(closeSuggestions, 100));
+
+        search.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (matches.length === 0) {
+                    renderSuggestions();
+                } else {
+                    highlight((activeIndex + 1) % matches.length);
+                }
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (matches.length > 0) {
+                    highlight((activeIndex - 1 + matches.length) % matches.length);
+                }
+            } else if (event.key === 'Enter' && activeIndex >= 0) {
+                // Only intercept Enter when a suggestion is highlighted, so the form still submits otherwise.
+                event.preventDefault();
+                pick(matches[activeIndex]);
+            } else if (event.key === 'Escape') {
+                closeSuggestions();
+            }
+        });
+
+        list.querySelectorAll('[data-cars-remove]').forEach((button) => {
+            button.addEventListener('click', () => removeRow(button));
+        });
+    })();
+</script>

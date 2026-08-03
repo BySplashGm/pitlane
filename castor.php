@@ -11,6 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+use Castor\Attribute\AsArgsAfterOptionEnd;
 use Castor\Attribute\AsTask;
 
 use function Castor\io;
@@ -110,28 +111,50 @@ function rectorFix(): void
     runRector(fixMode: true);
 }
 
-#[AsTask(name: 'phpunit', description: 'Run PHPUnit tests with coverage check')]
-function phpunit(): void
-{
-    runPhpunitTestsWithCoverageCheck();
+/**
+ * @param list<string> $phpunitArgs extra arguments forwarded to PHPUnit, e.g. `castor phpunit -- --filter Foo`
+ */
+#[AsTask(name: 'phpunit', description: 'Run PHPUnit tests with coverage check (pass extra args after --)')]
+function phpunit(
+    #[AsArgsAfterOptionEnd]
+    array $phpunitArgs = [],
+): void {
+    // A filtered run cannot reach 100% line coverage, so the gate only makes sense on a full run.
+    runPhpunitTestsWithCoverageCheck(withCoverage: [] === $phpunitArgs, extraArgs: $phpunitArgs);
 }
 
-#[AsTask(name: 'phpunit:no-coverage', description: 'Run PHPUnit tests without coverage check')]
-function phpunitNoCoverage(): void
-{
-    runPhpunitTestsWithCoverageCheck(withCoverage: false);
+/**
+ * @param list<string> $phpunitArgs extra arguments forwarded to PHPUnit, e.g. `castor phpunit:no-coverage -- --filter Foo`
+ */
+#[AsTask(name: 'phpunit:no-coverage', description: 'Run PHPUnit tests without coverage check (pass extra args after --)')]
+function phpunitNoCoverage(
+    #[AsArgsAfterOptionEnd]
+    array $phpunitArgs = [],
+): void {
+    runPhpunitTestsWithCoverageCheck(withCoverage: false, extraArgs: $phpunitArgs);
 }
 
-#[AsTask(name: 'infection', description: 'Run Infection mutation testing on the whole project')]
-function infection(): void
-{
-    runInfection();
+/**
+ * @param list<string> $infectionArgs extra arguments forwarded to Infection, e.g. `castor infection -- --filter=src/Foo.php`
+ */
+#[AsTask(name: 'infection', description: 'Run Infection mutation testing on the whole project (pass extra args after --)')]
+function infection(
+    #[AsArgsAfterOptionEnd]
+    array $infectionArgs = [],
+): void {
+    runInfection(extraArgs: $infectionArgs);
 }
 
-#[AsTask(name: 'infection:diff', description: 'Run Infection mutation testing on changed lines only')]
-function infectionDiff(string $target = 'main'): void
-{
-    runInfection(diff: true, target: $target);
+/**
+ * @param list<string> $infectionArgs extra arguments forwarded to Infection, e.g. `castor infection:diff -- --filter=src/Foo.php`
+ */
+#[AsTask(name: 'infection:diff', description: 'Run Infection mutation testing on changed lines only (pass extra args after --)')]
+function infectionDiff(
+    string $target = 'main',
+    #[AsArgsAfterOptionEnd]
+    array $infectionArgs = [],
+): void {
+    runInfection(diff: true, target: $target, extraArgs: $infectionArgs);
 }
 
 #[AsTask(name: 'composer:update', description: 'Update composer dependencies')]
@@ -212,12 +235,17 @@ function loadFixtures(bool $appendMode = false): void
     run('docker compose exec app bin/console foundry:load-fixtures'.($appendMode ? ' --append' : '').' --no-interaction');
 }
 
-function runPhpunitTestsWithCoverageCheck(bool $withCoverage = true): void
+/**
+ * @param list<string> $extraArgs
+ */
+function runPhpunitTestsWithCoverageCheck(bool $withCoverage = true, array $extraArgs = []): void
 {
     $command = 'docker compose exec app vendor/bin/phpunit';
     if ($withCoverage) {
         $command .= ' --coverage-text --only-summary-for-coverage-text';
     }
+
+    $command .= extraArgsSuffix($extraArgs);
 
     $process = run($command);
     if ($withCoverage && !preg_match('/Lines:\s+100\.00%/', $process->getOutput())) {
@@ -226,7 +254,10 @@ function runPhpunitTestsWithCoverageCheck(bool $withCoverage = true): void
     }
 }
 
-function runInfection(bool $diff = false, string $target = 'main'): void
+/**
+ * @param list<string> $extraArgs
+ */
+function runInfection(bool $diff = false, string $target = 'main', array $extraArgs = []): void
 {
     $command = 'docker compose exec app php -d memory_limit=1G vendor/bin/infection';
 
@@ -234,5 +265,21 @@ function runInfection(bool $diff = false, string $target = 'main'): void
         $command .= sprintf(' --git-diff-lines --git-diff-base=origin/%s', $target);
     }
 
+    $command .= extraArgsSuffix($extraArgs);
+
     run($command);
+}
+
+/**
+ * Escapes forwarded CLI tokens so a filter value can never break out of the command string.
+ *
+ * @param list<string> $extraArgs
+ */
+function extraArgsSuffix(array $extraArgs): string
+{
+    if ([] === $extraArgs) {
+        return '';
+    }
+
+    return ' '.implode(' ', array_map(escapeshellarg(...), $extraArgs));
 }

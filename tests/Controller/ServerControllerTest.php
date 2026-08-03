@@ -107,8 +107,9 @@ final class ServerControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', '✅ Accessible');
         self::assertSelectorTextContains('body', '❌ Blocked');
         self::assertSelectorTextContains('body', 'Not probeable');
-        // The owner may delete, and the running server exposes the polled log box.
+        // The owner may delete and edit, and the running server exposes the polled log box.
         self::assertSelectorTextContains('body', 'Delete');
+        self::assertCount(1, $crawler->filter(\sprintf('a[href="/server/%d/edit"]', (int) $server->getId())));
         self::assertCount(1, $crawler->filter('[data-controller="server-logs"]'));
     }
 
@@ -182,6 +183,8 @@ final class ServerControllerTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Assigned Ring');
         $content = (string) $this->kernelBrowser->getResponse()->getContent();
         self::assertStringNotContainsString('Delete', $content);
+        // Operators are read-only on settings: no edit control, and no link to the edit page.
+        self::assertStringNotContainsString(\sprintf('/server/%d/edit', (int) $server->getId()), $content);
     }
 
     public function test_an_operator_is_denied_an_unassigned_server(): void
@@ -315,6 +318,197 @@ final class ServerControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
+    public function test_the_edit_form_prefills_the_existing_server(): void
+    {
+        $server = $this->persistServer('Editable Ring', portOffset: 10);
+        $this->stubDocker(status: 'stopped');
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $crawler = $this->kernelBrowser->request('GET', \sprintf('/server/%d/edit', (int) $server->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('Editable Ring', $crawler->filter('input[name="server[name]"]')->attr('value'));
+        self::assertSame('9610', $crawler->filter('input[name="server[tcpPort]"]')->attr('value'));
+        // The pre-filled car is rendered as a hidden row input by the shared form partial.
+        self::assertSame('ks_ferrari_488_gt3', $crawler->filter('input[name^="server[cars]"]')->attr('value'));
+        // The admin password is a secret: the field is blank and the stored value never reaches the page.
+        self::assertSame('', $crawler->filter('input[name="server[adminPassword]"]')->attr('value') ?? '');
+        self::assertStringNotContainsString('admin-secret', (string) $this->kernelBrowser->getResponse()->getContent());
+    }
+
+    public function test_a_valid_edit_updates_the_server_writes_its_config_and_redirects(): void
+    {
+        $server = $this->persistServer('Before Rename', portOffset: 11);
+        $id = (int) $server->getId();
+
+        $acConfigService = $this->createMock(AcConfigServiceInterface::class);
+        $acConfigService->expects(self::once())
+            ->method('writeConfig')
+            ->with(self::isInstanceOf(Server::class));
+        self::getContainer()->set(AcConfigServiceInterface::class, $acConfigService);
+
+        // The edit page and the detail page reached after the redirect both probe Docker and ports.
+        $this->stubDocker(status: 'stopped');
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+
+        $payload = $this->validPayload();
+        $payload['name'] = 'After Rename';
+        // Keep the server's own ports: the self-exclusion must not read them as a conflict.
+        $payload['tcpPort'] = '9611';
+        $payload['udpPort'] = '9711';
+        $payload['httpPort'] = '8092';
+        $this->submitEditForm($id, $payload);
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Server "After Rename" updated.');
+
+        $this->entityManager->clear();
+        $updated = $this->entityManager->getRepository(Server::class)->find($id);
+        self::assertInstanceOf(Server::class, $updated);
+        self::assertSame('After Rename', $updated->getName());
+        self::assertSame(['ks_ferrari_488_gt3', 'ks_porsche_911'], $updated->getCars());
+        // Renaming does not move the config directory: the slug stays as first generated.
+        self::assertSame('before-rename', $updated->getContainerSlug());
+    }
+
+    public function test_a_valid_edit_keeps_the_admin_password_when_the_field_is_left_blank(): void
+    {
+        $server = $this->persistServer('Keep Admin', portOffset: 18);
+        $id = (int) $server->getId();
+
+        $acConfigService = $this->createMock(AcConfigServiceInterface::class);
+        $acConfigService->expects(self::once())->method('writeConfig');
+        self::getContainer()->set(AcConfigServiceInterface::class, $acConfigService);
+
+        $this->stubDocker(status: 'stopped');
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+
+        $payload = $this->validPayload();
+        $payload['name'] = 'Kept Admin';
+        // Submit the admin password blank: the stored one must be preserved, not blanked.
+        $payload['adminPassword'] = '';
+        $payload['tcpPort'] = '9618';
+        $payload['udpPort'] = '9718';
+        $payload['httpPort'] = '8099';
+        $this->submitEditForm($id, $payload);
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+
+        $this->entityManager->clear();
+        $updated = $this->entityManager->getRepository(Server::class)->find($id);
+        self::assertInstanceOf(Server::class, $updated);
+        self::assertSame('Kept Admin', $updated->getName());
+        self::assertSame('admin-secret', $updated->getAdminPassword());
+    }
+
+    public function test_an_edit_port_conflict_is_reported_without_persisting(): void
+    {
+        $this->persistServer('Neighbour', portOffset: 0);
+        $server = $this->persistServer('Mover', portOffset: 13);
+        $id = (int) $server->getId();
+
+        $acConfigService = $this->createMock(AcConfigServiceInterface::class);
+        $acConfigService->expects(self::never())->method('writeConfig');
+        self::getContainer()->set(AcConfigServiceInterface::class, $acConfigService);
+
+        $this->stubDocker(status: 'stopped');
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+
+        $payload = $this->validPayload();
+        // Neighbour already holds TCP 9600.
+        $payload['tcpPort'] = '9600';
+        $payload['udpPort'] = '9713';
+        $payload['httpPort'] = '8094';
+        $this->submitEditForm($id, $payload);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'already used by another server');
+
+        // The row keeps its original port: the rejected edit was not flushed.
+        $this->entityManager->clear();
+        $unchanged = $this->entityManager->getRepository(Server::class)->find($id);
+        self::assertInstanceOf(Server::class, $unchanged);
+        self::assertSame(9613, $unchanged->getTcpPort());
+    }
+
+    public function test_an_operator_is_denied_editing_an_assigned_server(): void
+    {
+        $server = $this->persistServer('Operator Locked', portOffset: 12);
+
+        $user = $this->persistUser('operator@pitlane.test', UserRole::Operator);
+        $user->assignServer($server);
+
+        $this->entityManager->flush();
+
+        $this->kernelBrowser->loginUser($user);
+        $this->kernelBrowser->request('GET', \sprintf('/server/%d/edit', (int) $server->getId()));
+
+        // Editing settings is denied to operators even for a server assigned to them.
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function test_the_edit_page_warns_when_the_server_is_running(): void
+    {
+        $server = $this->persistServer('Live Ring', portOffset: 14);
+        $this->stubDocker(status: 'running');
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->kernelBrowser->request('GET', \sprintf('/server/%d/edit', (int) $server->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[role="alert"]', 'only take effect after the server is restarted');
+    }
+
+    public function test_the_edit_page_omits_the_warning_when_the_server_is_not_running(): void
+    {
+        $server = $this->persistServer('Idle Ring', portOffset: 15);
+        $this->stubDocker(status: 'stopped');
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->kernelBrowser->request('GET', \sprintf('/server/%d/edit', (int) $server->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[role="alert"]');
+    }
+
+    public function test_the_edit_page_omits_the_warning_when_docker_is_unreachable(): void
+    {
+        $server = $this->persistServer('Unreachable Ring', portOffset: 16);
+
+        $dockerService = self::createStub(DockerServiceInterface::class);
+        $dockerService->method('getContainerStatus')->willThrowException(new RuntimeException('daemon down'));
+        self::getContainer()->set(DockerServiceInterface::class, $dockerService);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->kernelBrowser->request('GET', \sprintf('/server/%d/edit', (int) $server->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[role="alert"]');
+    }
+
+    public function test_the_edit_page_omits_the_warning_when_the_container_slug_is_missing(): void
+    {
+        $server = $this->persistServer('Slugless Edit', portOffset: 17);
+
+        // A server with no container slug yet must not 500 the edit page: the warning is simply omitted.
+        $dockerService = self::createStub(DockerServiceInterface::class);
+        $dockerService->method('getContainerStatus')->willThrowException(new MissingContainerSlugException());
+        self::getContainer()->set(DockerServiceInterface::class, $dockerService);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->kernelBrowser->request('GET', \sprintf('/server/%d/edit', (int) $server->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[role="alert"]');
+    }
+
     #[Override]
     protected function tearDown(): void
     {
@@ -363,6 +557,19 @@ final class ServerControllerTest extends WebTestCase
         $payload['_token'] = (string) $crawler->filter('input[name="server[_token]"]')->attr('value');
 
         $this->kernelBrowser->request('POST', '/server/new', ['server' => $payload]);
+    }
+
+    /**
+     * @param array<string, string|list<string>> $payload
+     */
+    private function submitEditForm(int $id, array $payload): void
+    {
+        $editPath = \sprintf('/server/%d/edit', $id);
+        // Read the form first so the client holds the stateless CSRF cookie and its token.
+        $crawler = $this->kernelBrowser->request('GET', $editPath);
+        $payload['_token'] = (string) $crawler->filter('input[name="server[_token]"]')->attr('value');
+
+        $this->kernelBrowser->request('POST', $editPath, ['server' => $payload]);
     }
 
     private function stubDocker(string $status, string $logs = ''): void
