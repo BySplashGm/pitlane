@@ -16,7 +16,7 @@ namespace App\Tests\Service;
 use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
-use App\Repository\ServerRepository;
+use App\Repository\ServerRepositoryInterface;
 use App\Service\PortConflictService;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
@@ -167,7 +167,7 @@ final class PortConflictServiceTest extends TestCase
 
     private function makeService(Server ...$servers): PortConflictService
     {
-        $serverRepository = self::createStub(ServerRepository::class);
+        $serverRepository = self::createStub(ServerRepositoryInterface::class);
         $serverRepository->method('findAll')->willReturn($servers);
 
         return new PortConflictService($serverRepository);

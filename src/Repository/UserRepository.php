@@ -14,13 +14,38 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\User;
-use Doctrine\Persistence\ObjectRepository;
-use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
+use App\Enum\UserRole;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+use Override;
+use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 /**
- * @extends ObjectRepository<User>
+ * @extends ServiceEntityRepository<User>
  */
-interface UserRepository extends ObjectRepository, PasswordUpgraderInterface
+class UserRepository extends ServiceEntityRepository implements UserRepositoryInterface
 {
-    public function ownerExists(): bool;
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, User::class);
+    }
+
+    #[Override]
+    public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
+    {
+        if (!$user instanceof User) {
+            throw new UnsupportedUserException(\sprintf('Instances of "%s" are not supported.', $user::class));
+        }
+
+        $user->setPassword($newHashedPassword);
+        $this->getEntityManager()->persist($user);
+        $this->getEntityManager()->flush();
+    }
+
+    #[Override]
+    public function ownerExists(): bool
+    {
+        return null !== $this->findOneBy(['userRole' => UserRole::Owner]);
+    }
 }

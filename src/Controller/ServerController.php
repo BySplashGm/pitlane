@@ -18,7 +18,7 @@ use App\Entity\Server;
 use App\Exception\EmptyCarListException;
 use App\Exception\MissingContainerSlugException;
 use App\Form\ServerType;
-use App\Repository\ServerRepository;
+use App\Repository\ServerRepositoryInterface;
 use App\Security\Voter\ServerVoter;
 use App\Service\AcConfigServiceInterface;
 use App\Service\AcContentServiceInterface;
@@ -42,7 +42,7 @@ final class ServerController extends AbstractController
     private const string STATUS_UNKNOWN = 'unknown';
 
     public function __construct(
-        private readonly ServerRepository $serverRepository,
+        private readonly ServerRepositoryInterface $serverRepository,
         private readonly PortConflictServiceInterface $portConflictService,
         private readonly AcConfigServiceInterface $acConfigService,
         private readonly AcContentServiceInterface $acContentService,

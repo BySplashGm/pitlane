@@ -15,14 +15,14 @@ namespace App\Entity;
 
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
-use App\Repository\DoctrineServerRepository;
+use App\Repository\ServerRepository;
 use App\Slug\ContainerSlugger;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\Entity(repositoryClass: DoctrineServerRepository::class)]
+#[ORM\Entity(repositoryClass: ServerRepository::class)]
 #[ORM\Table(name: 'servers')]
 #[ORM\UniqueConstraint(name: 'uniq_server_container_slug', fields: ['containerSlug'])]
 #[ORM\UniqueConstraint(name: 'uniq_server_tcp_port', fields: ['tcpPort'])]

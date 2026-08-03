@@ -15,7 +15,7 @@ namespace App\Tests\Repository;
 
 use App\Entity\User;
 use App\Enum\UserRole;
-use App\Repository\DoctrineUserRepository;
+use App\Repository\UserRepository;
 use App\Tests\Support\ResetsDatabase;
 use Doctrine\ORM\EntityManagerInterface;
 use Override;
@@ -23,13 +23,13 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\InMemoryUser;
 
-final class DoctrineUserRepositoryTest extends KernelTestCase
+final class UserRepositoryTest extends KernelTestCase
 {
     use ResetsDatabase;
 
     private EntityManagerInterface $entityManager;
 
-    private DoctrineUserRepository $doctrineUserRepository;
+    private UserRepository $userRepository;
 
     #[Override]
     protected function setUp(): void
@@ -38,7 +38,7 @@ final class DoctrineUserRepositoryTest extends KernelTestCase
 
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
-        $this->doctrineUserRepository = self::getContainer()->get(DoctrineUserRepository::class);
+        $this->userRepository = self::getContainer()->get(UserRepository::class);
 
         $this->truncateUsers($this->entityManager);
     }
@@ -53,7 +53,7 @@ final class DoctrineUserRepositoryTest extends KernelTestCase
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        self::assertFalse($this->doctrineUserRepository->ownerExists());
+        self::assertFalse($this->userRepository->ownerExists());
     }
 
     public function test_owner_exists_is_true_once_an_owner_is_persisted(): void
@@ -64,7 +64,7 @@ final class DoctrineUserRepositoryTest extends KernelTestCase
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        self::assertTrue($this->doctrineUserRepository->ownerExists());
+        self::assertTrue($this->userRepository->ownerExists());
     }
 
     public function test_upgrade_password_persists_the_new_hash(): void
@@ -74,10 +74,10 @@ final class DoctrineUserRepositoryTest extends KernelTestCase
         $user = new User('admin@pitlane.test', UserRole::Admin);
         $user->setPassword('old-hash');
 
-        $this->doctrineUserRepository->upgradePassword($user, 'new-hash');
+        $this->userRepository->upgradePassword($user, 'new-hash');
         $this->entityManager->clear();
 
-        $reloaded = $this->doctrineUserRepository->findOneBy(['email' => 'admin@pitlane.test']);
+        $reloaded = $this->userRepository->findOneBy(['email' => 'admin@pitlane.test']);
         self::assertInstanceOf(User::class, $reloaded);
         self::assertSame('new-hash', $reloaded->getPassword());
     }
@@ -86,7 +86,7 @@ final class DoctrineUserRepositoryTest extends KernelTestCase
     {
         $this->expectException(UnsupportedUserException::class);
 
-        $this->doctrineUserRepository->upgradePassword(new InMemoryUser('system', null), 'new-hash');
+        $this->userRepository->upgradePassword(new InMemoryUser('system', null), 'new-hash');
     }
 
     #[Override]
