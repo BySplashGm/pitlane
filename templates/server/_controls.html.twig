@@ -1,0 +1,16 @@
+{# CSRF-protected start/stop/restart POST forms for a single server, gated by the CONTROL voter.
+   `button_class` lets each caller match its surrounding button sizing. The hidden field must carry
+   `name="_csrf_token"` and `data-controller="csrf-protection"` so Symfony's stateless-CSRF JS sets the
+   double-submit cookie; without it the SameOrigin token manager rejects the POST. #}
+{% if is_granted(constant('App\\Security\\Voter\\ServerVoter::CONTROL'), server) %}
+    {% for action in [
+        { label: 'Start', route: 'app_server_start', token: 'server_start' },
+        { label: 'Stop', route: 'app_server_stop', token: 'server_stop' },
+        { label: 'Restart', route: 'app_server_restart', token: 'server_restart' },
+    ] %}
+        <form method="post" action="{{ path(action.route, { id: server.id }) }}">
+            <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token(action.token) }}">
+            <button type="submit" class="{{ button_class }}">{{ action.label }}</button>
+        </form>
+    {% endfor %}
+{% endif %}

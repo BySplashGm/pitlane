@@ -9,3 +9,6 @@ framework:
             - submit
             - authenticate
             - logout
+            - server_start
+            - server_stop
+            - server_restart

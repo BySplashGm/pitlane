@@ -139,6 +139,43 @@ final class ServerVoterTest extends TestCase
         yield 'operator is denied an unassigned server' => [UserRole::Operator, false, VoterInterface::ACCESS_DENIED];
     }
 
+    #[DataProvider('control_cases')]
+    public function test_vote_on_control(UserRole $userRole, bool $assigned, int $expected): void
+    {
+        $serverVoter = new ServerVoter();
+        $user = new User('actor@pitlane.test', $userRole);
+        $usernamePasswordToken = new UsernamePasswordToken($user, 'main', $user->getRoles());
+        $server = $this->makeServer();
+
+        if ($assigned) {
+            $user->assignServer($server);
+        }
+
+        self::assertSame($expected, $serverVoter->vote($usernamePasswordToken, $server, [ServerVoter::CONTROL]));
+    }
+
+    /**
+     * @return iterable<string, array{UserRole, bool, int}>
+     */
+    public static function control_cases(): iterable
+    {
+        yield 'owner controls any server' => [UserRole::Owner, false, VoterInterface::ACCESS_GRANTED];
+        yield 'admin controls any server' => [UserRole::Admin, false, VoterInterface::ACCESS_GRANTED];
+        // Unlike EDIT, controlling is assignment-scoped: an operator may start, stop and restart the
+        // servers assigned to them, but no others.
+        yield 'operator controls an assigned server' => [UserRole::Operator, true, VoterInterface::ACCESS_GRANTED];
+        yield 'operator is denied an unassigned server' => [UserRole::Operator, false, VoterInterface::ACCESS_DENIED];
+    }
+
+    public function test_it_abstains_on_control_without_a_server_subject(): void
+    {
+        $serverVoter = new ServerVoter();
+        $user = new User('actor@pitlane.test', UserRole::Owner);
+        $usernamePasswordToken = new UsernamePasswordToken($user, 'main', $user->getRoles());
+
+        self::assertSame(VoterInterface::ACCESS_ABSTAIN, $serverVoter->vote($usernamePasswordToken, null, [ServerVoter::CONTROL]));
+    }
+
     public function test_it_abstains_on_unsupported_attribute(): void
     {
         $serverVoter = new ServerVoter();

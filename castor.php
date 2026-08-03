@@ -37,6 +37,17 @@ function contentSeed(): void
 function build(): void
 {
     run('docker compose build --pull --no-cache');
+
+    // The managed game-server image (ac-server/Dockerfile) is not a compose service, so build it
+    // separately; its tag must match DockerService::IMAGE ('ac-server:latest'). The Dockerfile COPYs
+    // the proprietary Assetto Corsa dedicated-server files (acServer, system/, content/), which are
+    // gitignored and supplied by hand. Skip with a notice when they are absent so the rest of the
+    // bootstrap still works — starting a server needs this image.
+    if (is_file('ac-server/acServer')) {
+        run('docker build --pull -t ac-server:latest ac-server');
+    } else {
+        io()->warning('Skipping ac-server:latest build: place the Assetto Corsa dedicated-server files (acServer, system/, content/) in ac-server/, then run "castor build" again. Starting a server needs this image.');
+    }
 }
 
 #[AsTask(name: 'up', description: 'Start the dev services (app, database, mailer)')]
