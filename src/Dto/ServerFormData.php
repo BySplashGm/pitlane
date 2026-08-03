@@ -216,7 +216,7 @@ final class ServerFormData
      * The admin password that will be persisted: the submitted one, or the current one kept when the
      * edit form left the field blank.
      */
-    public function effectiveAdminPassword(): string
+    private function effectiveAdminPassword(): string
     {
         return '' === $this->adminPassword ? ($this->currentAdminPassword ?? '') : $this->adminPassword;
     }
