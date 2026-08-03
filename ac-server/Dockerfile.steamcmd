@@ -1,0 +1,60 @@
+# syntax=docker/dockerfile:1
+#
+# DRAFT — build the Assetto Corsa dedicated server by fetching it with SteamCMD, so the repo and image
+# never ship Kunos/505's proprietary files. NOT yet wired into `castor build`; the working image is
+# still built from ./Dockerfile (bring-your-own-files). Validate this on an amd64 Linux host and settle
+# the two UNVERIFIED notes below before switching the project over to it.
+#
+# Build (anonymous):    docker build -f ac-server/Dockerfile.steamcmd -t ac-server:latest ac-server
+# Build (Steam account): docker build -f ac-server/Dockerfile.steamcmd \
+#                          --build-arg STEAM_USER=you --build-arg STEAM_PASSWORD=secret \
+#                          -t ac-server:latest ac-server
+#
+# acServer is a 32-bit x86 Linux binary, so the image is pinned to linux/amd64 (emulated on arm64).
+FROM --platform=linux/amd64 debian:bookworm-slim
+
+# SteamCMD and the 32-bit Linux acServer both need i386 runtime libraries.
+RUN dpkg --add-architecture i386 \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        lib32gcc-s1 \
+        lib32stdc++6 \
+        zlib1g:i386 \
+    && rm -rf /var/lib/apt/lists/*
+
+# SteamCMD is pulled from Valve's CDN at build time — never committed.
+RUN mkdir -p /steamcmd \
+    && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" \
+       | tar zxf - -C /steamcmd
+
+WORKDIR /ac-server
+
+# UNVERIFIED #1 — anonymous access. AppID 302550 (Assetto Corsa Dedicated Server) is documented as
+# anonymously downloadable, but some accounts are refused and must log in. Default to anonymous; pass
+# STEAM_USER / STEAM_PASSWORD build args to use an account that owns AC when anonymous is rejected.
+ARG STEAM_USER=anonymous
+ARG STEAM_PASSWORD=""
+
+# UNVERIFIED #2 — which binary 302550 delivers. It may ship the native 32-bit Linux `acServer` this
+# image expects, or only the Windows `acServer.exe` (a known reference forces the Windows platform type
+# for 302550). If it turns out to be Windows-only, add `+@sSteamCmdForcePlatformType windows` above the
+# login line and run the server under Wine from a different base image. Inspect /ac-server after a build
+# to confirm what actually landed (binary name, case, and platform).
+RUN /steamcmd/steamcmd.sh \
+        +login "${STEAM_USER}" ${STEAM_PASSWORD} \
+        +force_install_dir /ac-server \
+        +app_update 302550 validate \
+        +quit
+
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh \
+    && if [ -f ./acServer ]; then chmod +x ./acServer; fi
+
+# DockerService binds each server's cfg read-only here, matching acServer's working directory.
+VOLUME ["/ac-server/cfg"]
+
+EXPOSE 9600/tcp 9600/udp 8081/tcp
+
+ENTRYPOINT ["./entrypoint.sh"]
