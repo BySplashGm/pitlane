@@ -29,6 +29,7 @@ use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Form\FormError;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -184,6 +185,84 @@ final class ServerController extends AbstractController
             'Content-Type' => 'text/plain; charset=utf-8',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    #[Route(path: '/server/{id}/start', name: 'app_server_start', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted(ServerVoter::CONTROL, subject: 'server')]
+    public function start(Request $request, Server $server): RedirectResponse
+    {
+        return $this->control(
+            $request,
+            $server,
+            'start',
+            $this->dockerService->startServer(...),
+            \sprintf('Server "%s" started.', $server->getName()),
+            \sprintf('Could not start server "%s".', $server->getName()),
+        );
+    }
+
+    #[Route(path: '/server/{id}/stop', name: 'app_server_stop', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted(ServerVoter::CONTROL, subject: 'server')]
+    public function stop(Request $request, Server $server): RedirectResponse
+    {
+        return $this->control(
+            $request,
+            $server,
+            'stop',
+            $this->dockerService->stopServer(...),
+            \sprintf('Server "%s" stopped.', $server->getName()),
+            \sprintf('Could not stop server "%s".', $server->getName()),
+        );
+    }
+
+    #[Route(path: '/server/{id}/restart', name: 'app_server_restart', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted(ServerVoter::CONTROL, subject: 'server')]
+    public function restart(Request $request, Server $server): RedirectResponse
+    {
+        return $this->control(
+            $request,
+            $server,
+            'restart',
+            $this->dockerService->restartServer(...),
+            \sprintf('Server "%s" restarted.', $server->getName()),
+            \sprintf('Could not restart server "%s".', $server->getName()),
+        );
+    }
+
+    /**
+     * Shared body for the start/stop/restart actions: rejects a bad CSRF token, runs the Docker
+     * operation, and turns success or any Docker/config failure into a flash message. Always lands
+     * back on the server detail page so an operational error is shown, never surfaced as a 500.
+     *
+     * @param callable(Server): void $operation
+     */
+    private function control(
+        Request $request,
+        Server $server,
+        string $action,
+        callable $operation,
+        string $successMessage,
+        string $errorMessage,
+    ): RedirectResponse {
+        $redirectResponse = $this->redirectToRoute('app_server_show', ['id' => $server->getId()]);
+
+        if (!$this->isCsrfTokenValid(\sprintf('server_%s', $action), $request->getPayload()->getString('_csrf_token'))) {
+            $this->addFlash('error', 'Invalid CSRF token, please retry.');
+
+            return $redirectResponse;
+        }
+
+        try {
+            $operation($server);
+            $this->addFlash('success', $successMessage);
+        } catch (RuntimeException|MissingContainerSlugException $exception) {
+            // A Docker daemon hiccup or a server with no container yet is an operational failure, not a
+            // bug: report it — with the underlying reason so it can be diagnosed — as a flash and keep
+            // the user on the detail page.
+            $this->addFlash('error', \sprintf('%s %s', $errorMessage, $exception->getMessage()));
+        }
+
+        return $redirectResponse;
     }
 
     /**

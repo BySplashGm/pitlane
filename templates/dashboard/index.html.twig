@@ -8,6 +8,7 @@
     {% set status_styles = {
         running: 'border-green-800 bg-green-950 text-green-300',
         stopped: 'border-border bg-surface text-muted',
+        'not created': 'border-dashed border-border bg-surface text-muted',
         error: 'border-[#e10600]/40 bg-[#e10600]/15 text-[#ff8a85]',
         unknown: 'border-amber-800 bg-amber-950 text-amber-300',
     } %}
@@ -61,14 +62,11 @@
                         </div>
                     </dl>
 
-                    {# TODO(#server-crud): replace these disabled placeholders with real POST forms
-                       once app_server_start/stop/restart exist and a ServerVoter gates them. #}
                     <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-                        {% for action in ['Start', 'Stop', 'Restart'] %}
-                            <button type="button" disabled class="cursor-not-allowed rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted opacity-50" title="Coming soon">
-                                {{ action }}
-                            </button>
-                        {% endfor %}
+                        {{ include('server/_controls.html.twig', {
+                            server: server,
+                            button_class: 'rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:bg-surface-hover hover:text-fg',
+                        }, with_context = false) }}
                         <a href="{{ path('app_server_show', { id: server.id }) }}" class="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:bg-surface-hover hover:text-fg">
                             View
                         </a>

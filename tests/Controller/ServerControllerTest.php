@@ -25,6 +25,7 @@ use App\Service\PortCheckerServiceInterface;
 use App\Tests\Support\ResetsDatabase;
 use Doctrine\ORM\EntityManagerInterface;
 use Override;
+use PHPUnit\Framework\MockObject\MockObject;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -250,6 +251,143 @@ final class ServerControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame('', (string) $this->kernelBrowser->getResponse()->getContent());
+    }
+
+    public function test_the_owner_can_start_a_server(): void
+    {
+        $server = $this->persistServer('Startable Ring', portOffset: 20);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'stopped');
+        $dockerService->expects(self::once())->method('startServer')->with(self::isInstanceOf(Server::class));
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->submitControl($id, 'start');
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Server "Startable Ring" started.');
+    }
+
+    public function test_the_owner_can_stop_a_server(): void
+    {
+        $server = $this->persistServer('Stoppable Ring', portOffset: 21);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'running');
+        $dockerService->expects(self::once())->method('stopServer')->with(self::isInstanceOf(Server::class));
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->submitControl($id, 'stop');
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Server "Stoppable Ring" stopped.');
+    }
+
+    public function test_the_owner_can_restart_a_server(): void
+    {
+        $server = $this->persistServer('Restartable Ring', portOffset: 22);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'running');
+        $dockerService->expects(self::once())->method('restartServer')->with(self::isInstanceOf(Server::class));
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->submitControl($id, 'restart');
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Server "Restartable Ring" restarted.');
+    }
+
+    public function test_a_start_failure_is_reported_as_a_flash(): void
+    {
+        $server = $this->persistServer('Broken Start', portOffset: 23);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'stopped');
+        $dockerService->expects(self::once())->method('startServer')->willThrowException(new RuntimeException('daemon down'));
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->submitControl($id, 'start');
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Could not start server "Broken Start".');
+        // The underlying Docker reason is surfaced so the failure can be diagnosed from the UI.
+        self::assertSelectorTextContains('body', 'daemon down');
+    }
+
+    public function test_a_stop_failure_is_reported_as_a_flash(): void
+    {
+        $server = $this->persistServer('Broken Stop', portOffset: 24);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'running');
+        $dockerService->expects(self::once())->method('stopServer')->willThrowException(new RuntimeException('daemon down'));
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->submitControl($id, 'stop');
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Could not stop server "Broken Stop".');
+        self::assertSelectorTextContains('body', 'daemon down');
+    }
+
+    public function test_a_restart_failure_with_a_missing_container_slug_is_reported_as_a_flash(): void
+    {
+        $server = $this->persistServer('Slugless Restart', portOffset: 25);
+        $id = (int) $server->getId();
+
+        // A server with no container yet raises MissingContainerSlugException: it degrades to a flash,
+        // never a 500. This also covers the second arm of the shared catch.
+        $dockerService = $this->mockDocker(status: 'stopped');
+        $dockerService->expects(self::once())->method('restartServer')->willThrowException(new MissingContainerSlugException());
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->submitControl($id, 'restart');
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Could not restart server "Slugless Restart".');
+        // The MissingContainerSlugException message is surfaced as the reason.
+        self::assertSelectorTextContains('body', 'container slug is missing');
+    }
+
+    public function test_an_invalid_csrf_token_rejects_the_action_without_touching_docker(): void
+    {
+        $server = $this->persistServer('Guarded Ring', portOffset: 26);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'stopped');
+        $dockerService->expects(self::never())->method('startServer');
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->kernelBrowser->request('POST', \sprintf('/server/%d/start', $id), ['_csrf_token' => 'forged-token']);
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Invalid CSRF token, please retry.');
+    }
+
+    public function test_an_operator_cannot_control_an_unassigned_server(): void
+    {
+        $server = $this->persistServer('Off Limits', portOffset: 27);
+
+        $this->kernelBrowser->loginUser($this->persistUser('operator@pitlane.test', UserRole::Operator));
+        $this->kernelBrowser->request('POST', \sprintf('/server/%d/start', (int) $server->getId()), ['_csrf_token' => 'irrelevant']);
+
+        // The voter denies before the action body runs, so no CSRF token could unlock it.
+        self::assertResponseStatusCodeSame(403);
     }
 
     public function test_an_invalid_submission_re_renders_without_persisting(): void
@@ -570,6 +708,33 @@ final class ServerControllerTest extends WebTestCase
         $payload['_token'] = (string) $crawler->filter('input[name="server[_token]"]')->attr('value');
 
         $this->kernelBrowser->request('POST', $editPath, ['server' => $payload]);
+    }
+
+    /**
+     * A configurable Docker mock: it answers the detail page's status/log probes, and the caller adds
+     * the `expects()` for the control method under test.
+     */
+    private function mockDocker(string $status): DockerServiceInterface&MockObject
+    {
+        $dockerService = $this->createMock(DockerServiceInterface::class);
+        $dockerService->method('getContainerStatus')->willReturn($status);
+        $dockerService->method('getLogs')->willReturn('');
+        self::getContainer()->set(DockerServiceInterface::class, $dockerService);
+
+        return $dockerService;
+    }
+
+    /**
+     * Reads the detail page so the client holds the stateless CSRF cookie and the action's token, then
+     * posts the matching control form.
+     */
+    private function submitControl(int $id, string $verb): void
+    {
+        $actionPath = \sprintf('/server/%d/%s', $id, $verb);
+        $crawler = $this->kernelBrowser->request('GET', \sprintf('/server/%d', $id));
+        $token = (string) $crawler->filter(\sprintf('form[action="%s"] input[name="_csrf_token"]', $actionPath))->attr('value');
+
+        $this->kernelBrowser->request('POST', $actionPath, ['_csrf_token' => $token]);
     }
 
     private function stubDocker(string $status, string $logs = ''): void
