@@ -26,13 +26,18 @@
         </div>
 
         {# TODO(#server-crud): swap these disabled placeholders for real POST forms once
-           app_server_start/stop/restart/edit/delete exist and a ServerVoter gates each action. #}
+           app_server_start/stop/restart exist and a ServerVoter gates each action. #}
         <div class="flex flex-wrap items-center gap-2">
-            {% for action in ['Start', 'Stop', 'Restart', 'Edit'] %}
+            {% for action in ['Start', 'Stop', 'Restart'] %}
                 <button type="button" disabled class="cursor-not-allowed rounded-md border border-border px-3 py-1.5 text-sm font-medium text-muted opacity-50" title="Coming soon">
                     {{ action }}
                 </button>
             {% endfor %}
+            {% if is_granted(constant('App\\Security\\Voter\\ServerVoter::EDIT'), server) %}
+                <a href="{{ path('app_server_edit', {id: server.id}) }}" class="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-fg hover:bg-surface-hover">
+                    Edit
+                </a>
+            {% endif %}
             {% if is_granted(constant('App\\Security\\Voter\\ServerVoter::DELETE'), server) %}
                 <button type="button" disabled class="cursor-not-allowed rounded-md border border-[#e10600]/40 px-3 py-1.5 text-sm font-medium text-[#ff8a85] opacity-50" title="Coming soon">
                     Delete

@@ -97,6 +97,51 @@ final class ServerController extends AbstractController
         ]);
     }
 
+    /**
+     * @throws IOException
+     * @throws MissingContainerSlugException
+     * @throws EmptyCarListException
+     */
+    #[Route(path: '/server/{id}/edit', name: 'app_server_edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    #[IsGranted(ServerVoter::EDIT, subject: 'server')]
+    public function edit(Request $request, Server $server): Response
+    {
+        $serverFormData = ServerFormData::fromServer($server);
+
+        // Feed the server-side Assert\Choice callbacks: membership is validated against the installed
+        // content, so a forged POST cannot smuggle an unlisted value past the UI dropdowns.
+        $serverFormData->availableTracks = $this->acContentService->tracks();
+        $serverFormData->availableCars = $this->acContentService->cars();
+        $serverFormData->availableWeatherGraphics = $this->acContentService->weather();
+
+        $form = $this->createForm(ServerType::class, $serverFormData);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $serverFormData->applyTo($server);
+
+            // The port check excludes this server's own persisted row by id, so keeping its ports is
+            // not a false clash.
+            if ($this->portConflictService->hasConflict($server)) {
+                $form->addError(new FormError('One or more of the chosen ports is already used by another server.'));
+            } else {
+                $this->serverRepository->save($server);
+                $this->acConfigService->writeConfig($server);
+
+                $this->addFlash('success', \sprintf('Server "%s" updated.', $server->getName()));
+
+                return $this->redirectToRoute('app_server_show', ['id' => $server->getId()]);
+            }
+        }
+
+        return $this->render('server/edit.html.twig', [
+            'form' => $form,
+            'server' => $server,
+            'availableCars' => $serverFormData->availableCars,
+            'running' => $this->isRunning($server),
+        ]);
+    }
+
     #[Route(path: '/server/{id}', name: 'app_server_show', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted(ServerVoter::VIEW, subject: 'server')]
     public function show(Server $server): Response
@@ -139,5 +184,18 @@ final class ServerController extends AbstractController
             'Content-Type' => 'text/plain; charset=utf-8',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    /**
+     * Whether the server's container is currently running. A Docker daemon hiccup, or a server with no
+     * container yet, degrades to false: the edit page still renders, just without the restart warning.
+     */
+    private function isRunning(Server $server): bool
+    {
+        try {
+            return 'running' === $this->dockerService->getContainerStatus($server);
+        } catch (RuntimeException|MissingContainerSlugException) {
+            return false;
+        }
     }
 }
