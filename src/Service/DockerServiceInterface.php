@@ -20,7 +20,8 @@ use RuntimeException;
 interface DockerServiceInterface
 {
     /**
-     * Current container state, one of `running`, `stopped`, `error` or `unknown`.
+     * Current container state, one of `running`, `stopped`, `not created`, `error` or `unknown`.
+     * `not created` means the server's config exists but no container has been built yet.
      *
      * @throws MissingContainerSlugException when the server has no container slug yet
      * @throws RuntimeException              on a Docker API failure
@@ -32,7 +33,7 @@ interface DockerServiceInterface
      *
      * @param list<Server> $servers
      *
-     * @return array<int, string> server id => status (`running`, `stopped`, `error` or `unknown`)
+     * @return array<int, string> server id => status (`running`, `stopped`, `not created`, `error` or `unknown`)
      *
      * @throws RuntimeException on a Docker API failure
      */

@@ -44,11 +44,9 @@ final class DockerServiceTest extends TestCase
         self::assertSame('GET', $mockResponse->getRequestMethod());
         self::assertSame('http://docker/containers/spa-endurance/json', $mockResponse->getRequestUrl());
 
-        $extraOptions = $mockResponse->getRequestOptions()['extra'];
-        self::assertIsArray($extraOptions);
-        $curlOptions = $extraOptions['curl'];
-        self::assertIsArray($curlOptions);
-        self::assertSame(self::SOCKET, $curlOptions[\CURLOPT_UNIX_SOCKET_PATH]);
+        // The daemon is reached over the mounted Unix socket via HttpClient's 'bindto' option, which
+        // maps a socket-file path to CURLOPT_UNIX_SOCKET_PATH.
+        self::assertSame(self::SOCKET, $mockResponse->getRequestOptions()['bindto']);
     }
 
     public function test_a_transport_failure_is_wrapped_in_a_runtime_exception(): void
@@ -91,11 +89,11 @@ final class DockerServiceTest extends TestCase
         yield 'missing state' => ['{}', 'unknown'];
     }
 
-    public function test_get_container_status_treats_a_missing_container_as_stopped(): void
+    public function test_get_container_status_treats_a_missing_container_as_not_created(): void
     {
         $dockerService = $this->makeService(new MockResponse('{"message":"No such container"}', ['http_code' => 404]));
 
-        self::assertSame('stopped', $dockerService->getContainerStatus($this->createServer()));
+        self::assertSame('not created', $dockerService->getContainerStatus($this->createServer()));
     }
 
     public function test_get_container_status_throws_on_a_docker_error(): void
@@ -136,7 +134,9 @@ final class DockerServiceTest extends TestCase
             $this->serverWithId(3, 'Monza'),
         ]);
 
-        self::assertSame([1 => 'running', 2 => 'stopped', 3 => 'unknown'], $statuses);
+        // Server 2 matches no container at all: config-only, so "not created". Server 3 matches the
+        // "/monza" container whose State is absent, which maps to "unknown".
+        self::assertSame([1 => 'running', 2 => 'not created', 3 => 'unknown'], $statuses);
         self::assertSame('http://docker/containers/json?all=1', $mockResponse->getRequestUrl());
     }
 
@@ -170,7 +170,7 @@ final class DockerServiceTest extends TestCase
             'Image' => 'ac-server:latest',
             'ExposedPorts' => ['9600/tcp' => [], '9601/udp' => [], '8081/tcp' => []],
             'HostConfig' => [
-                'Binds' => ['/srv/ac/spa-endurance/cfg:/home/acserver/cfg:ro'],
+                'Binds' => ['/srv/ac/spa-endurance/cfg:/ac-server/cfg:ro'],
                 'PortBindings' => [
                     '9600/tcp' => [['HostPort' => '9600']],
                     '9601/udp' => [['HostPort' => '9601']],

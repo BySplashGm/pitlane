@@ -34,6 +34,8 @@ final readonly class DockerService implements DockerServiceInterface
 
     private const string STATUS_STOPPED = 'stopped';
 
+    private const string STATUS_NOT_CREATED = 'not created';
+
     private const string STATUS_ERROR = 'error';
 
     private const string STATUS_UNKNOWN = 'unknown';
@@ -44,8 +46,11 @@ final readonly class DockerService implements DockerServiceInterface
         private string $dockerSocket,
         #[Autowire('%env(DOCKER_NETWORK)%')]
         private string $dockerNetwork,
-        #[Autowire('%env(AC_SERVERS_DIR)%')]
-        private string $acServersDir,
+        // Bind sources are resolved by the daemon on the host, not inside this container, so the game
+        // containers must mount the host-absolute servers dir — which differs from the in-container
+        // path when Pitlane itself runs in a container (see AcConfigService for the write-side path).
+        #[Autowire('%env(AC_SERVERS_HOST_DIR)%')]
+        private string $acServersHostDir,
     ) {
     }
 
@@ -59,7 +64,9 @@ final readonly class DockerService implements DockerServiceInterface
         $response = $this->request('GET', \sprintf('/containers/%s/json', $this->containerName($server)), allowedStatusCode: 404);
 
         if (404 === $response->getStatusCode()) {
-            return self::STATUS_STOPPED;
+            // The config exists in the database but no container has been created yet (or it was
+            // removed). startServer() will materialise it on demand.
+            return self::STATUS_NOT_CREATED;
         }
 
         // request() has already guaranteed a success status, so decoding cannot hit an error response.
@@ -93,7 +100,7 @@ final readonly class DockerService implements DockerServiceInterface
             }
 
             $container = $containersByName[$server->getContainerSlug()] ?? null;
-            $statuses[$id] = null === $container ? self::STATUS_STOPPED : $this->mapState($container['State'] ?? null);
+            $statuses[$id] = null === $container ? self::STATUS_NOT_CREATED : $this->mapState($container['State'] ?? null);
         }
 
         return $statuses;
@@ -166,11 +173,12 @@ final readonly class DockerService implements DockerServiceInterface
      */
     private function request(string $method, string $path, ?array $body = null, ?int $allowedStatusCode = null): ResponseInterface
     {
-        // The daemon speaks HTTP over the mounted Unix socket, reached through cURL's dedicated
-        // CURLOPT_UNIX_SOCKET_PATH; the local-interface 'bindto' option cannot address a socket file.
+        // The daemon speaks HTTP over the mounted Unix socket. HttpClient's 'bindto' option maps an
+        // existing socket-file path to CURLOPT_UNIX_SOCKET_PATH; setting that curl option directly via
+        // 'extra.curl' is rejected by CurlHttpClient.
         // No 'throw' option: HTTP error codes are inspected directly (getStatusCode() only throws on
         // transport failure, and the body is read with throw=false), so we wrap transport errors ourselves.
-        $options = ['extra' => ['curl' => [\CURLOPT_UNIX_SOCKET_PATH => $this->dockerSocket]]];
+        $options = ['bindto' => $this->dockerSocket];
         if (null !== $body) {
             $options['json'] = $body;
         }
@@ -214,7 +222,9 @@ final readonly class DockerService implements DockerServiceInterface
             'Image' => self::IMAGE,
             'ExposedPorts' => [$tcpPort => new stdClass(), $udpPort => new stdClass(), $httpPort => new stdClass()],
             'HostConfig' => [
-                'Binds' => [\sprintf('%s:/home/acserver/cfg:ro', Path::join($this->acServersDir, $server->getContainerSlug(), 'cfg'))],
+                // acServer reads its config from cfg/ relative to its working directory (/ac-server in
+                // the image), so the host cfg dir is mounted read-only there.
+                'Binds' => [\sprintf('%s:/ac-server/cfg:ro', Path::join($this->acServersHostDir, $server->getContainerSlug(), 'cfg'))],
                 'PortBindings' => [
                     $tcpPort => [['HostPort' => (string) $server->getTcpPort()]],
                     $udpPort => [['HostPort' => (string) $server->getUdpPort()]],
