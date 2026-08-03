@@ -47,21 +47,49 @@ final class ServerFormData
     #[IniSafeValue]
     public string $serverName = '';
 
-    #[Assert\NotBlank]
-    #[Assert\Length(max: 255)]
-    public string $track = '';
+    /**
+     * Installed-content choice lists, injected by the controller from
+     * {@see \App\Service\AcContentServiceInterface} before validation. The {@see Assert\Choice}
+     * callbacks below validate the submitted values against these, so a forged POST cannot smuggle a
+     * value outside the installed content into the generated INI config, whatever the UI offered.
+     *
+     * @var list<string>
+     */
+    public array $availableTracks = [];
 
-    #[Assert\Length(max: 255)]
+    /**
+     * @var list<string>
+     */
+    public array $availableCars = [];
+
+    /**
+     * @var list<string>
+     */
+    public array $availableWeatherGraphics = [];
+
+    /**
+     * Nullable because the track {@see \Symfony\Component\Form\Extension\Core\Type\ChoiceType}'s
+     * placeholder maps an empty submit to null; NotBlank then reports it (Choice skips null).
+     */
+    #[Assert\NotBlank]
+    #[Assert\Choice(callback: 'trackChoices')]
+    public ?string $track = null;
+
+    /**
+     * Validated server-side by {@see \App\Form\ServerType}'s dependent {@see \Symfony\Component\Form\Extension\Core\Type\ChoiceType}
+     * (its choices are the chosen track's layouts), so membership is enforced without the layout list
+     * being known ahead of the submitted track.
+     */
     public ?string $trackLayout = null;
 
     /**
-     * Numeric-keyed rather than a list: the cars collection leaves index gaps when blank rows
-     * are pruned. {@see toServer()} re-indexes it before it reaches the entity.
+     * A repeatable list: the same car may appear more than once (grid slots), and removing a row
+     * leaves an index gap. {@see toServer()} re-indexes it before it reaches the entity.
      *
      * @var array<int, string>
      */
     #[Assert\Count(min: 1)]
-    #[Assert\All([new Assert\NotBlank()])]
+    #[Assert\Choice(callback: 'carChoices', multiple: true)]
     public array $cars = [];
 
     #[IniSafeValue]
@@ -91,8 +119,12 @@ final class ServerFormData
 
     public DurationUnit $durationUnit = DurationUnit::Minutes;
 
+    /**
+     * Nullable for the same reason as {@see $track}: an empty weather select maps to null.
+     */
     #[Assert\NotBlank]
-    public string $weatherGraphics = '';
+    #[Assert\Choice(callback: 'weatherGraphicsChoices')]
+    public ?string $weatherGraphics = null;
 
     #[Assert\Range(min: 0, max: 40)]
     public int $ambientTemp = 20;
@@ -148,6 +180,30 @@ final class ServerFormData
     }
 
     /**
+     * @return list<string>
+     */
+    public function trackChoices(): array
+    {
+        return $this->availableTracks;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function carChoices(): array
+    {
+        return $this->availableCars;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function weatherGraphicsChoices(): array
+    {
+        return $this->availableWeatherGraphics;
+    }
+
+    /**
      * Builds the entity from the validated form values.
      */
     public function toServer(): Server
@@ -155,7 +211,7 @@ final class ServerFormData
         return new Server(
             name: $this->name,
             serverName: $this->serverName,
-            track: $this->track,
+            track: $this->track ?? '',
             trackLayout: $this->trackLayout,
             cars: array_values($this->cars),
             password: $this->password ?? '',
@@ -167,7 +223,7 @@ final class ServerFormData
             sessionType: $this->sessionType,
             sessionDuration: $this->sessionDuration,
             durationUnit: $this->durationUnit,
-            weatherGraphics: $this->weatherGraphics,
+            weatherGraphics: $this->weatherGraphics ?? '',
             ambientTemp: $this->ambientTemp,
             trackTemp: $this->trackTemp,
             dynamicTrack: $this->dynamicTrack,

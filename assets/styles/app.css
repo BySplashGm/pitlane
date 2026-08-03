@@ -35,3 +35,74 @@
         @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-bg;
     }
 }
+
+/*
+ * Tom Select (symfony/ux-autocomplete) ships a hardcoded light theme, and it copies the app's input
+ * utility classes (border, bg, padding, radius) onto its own `.ts-wrapper`. So the wrapper already
+ * draws the field: strip Tom Select's inner `.ts-control` box to avoid a doubled "field in a field",
+ * move the focus ring to the wrapper, and restyle the detached dropdown with the app's dark tokens.
+ * The `.ts-wrapper` prefix raises specificity above the vendor stylesheet, whatever the load order.
+ */
+.ts-wrapper .ts-control,
+.ts-wrapper.single .ts-control,
+.ts-wrapper.single.input-active .ts-control,
+.ts-wrapper.full .ts-control {
+    background: transparent !important;
+    background-image: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    /* No inner padding except a right gutter for the caret and clear (×) controls. */
+    padding: 0 2.5rem 0 0 !important;
+    min-height: 0 !important;
+    color: var(--color-fg) !important;
+}
+
+.ts-wrapper.focus {
+    border-color: var(--color-brand) !important;
+}
+
+.ts-wrapper .ts-control input,
+.ts-wrapper .ts-control input::placeholder {
+    font-size: inherit !important;
+    line-height: inherit !important;
+}
+
+.ts-wrapper .ts-control input {
+    color: var(--color-fg) !important;
+}
+
+.ts-wrapper .ts-control input::placeholder {
+    color: var(--color-muted) !important;
+}
+
+.ts-wrapper .ts-dropdown,
+.ts-wrapper .ts-dropdown.single {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+    color: var(--color-fg);
+}
+
+.ts-wrapper .ts-dropdown .option,
+.ts-wrapper .ts-dropdown .optgroup-header {
+    background: transparent;
+    color: var(--color-fg);
+}
+
+.ts-wrapper .ts-dropdown .active {
+    background-color: var(--color-surface-hover);
+    color: var(--color-fg);
+}
+
+.ts-wrapper .ts-dropdown [data-selectable] .highlight {
+    background: color-mix(in srgb, var(--color-brand) 30%, transparent);
+    border-radius: 1px;
+}
+
+.ts-wrapper.single .ts-control::after {
+    border-top-color: var(--color-muted);
+}
+
+.ts-wrapper.single.dropdown-active .ts-control::after {
+    border-bottom-color: var(--color-muted);
+}
