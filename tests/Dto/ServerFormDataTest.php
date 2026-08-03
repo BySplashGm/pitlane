@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace App\Tests\Dto;
 
 use App\Dto\ServerFormData;
+use App\Entity\Server;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Repository\ServerRepositoryInterface;
@@ -137,6 +138,114 @@ final class ServerFormDataTest extends TestCase
 
         $server = $serverFormData->toServer();
 
+        self::assertSame('', $server->getTrack());
+        self::assertSame('', $server->getWeatherGraphics());
+    }
+
+    public function test_from_server_maps_every_field(): void
+    {
+        $server = $this->makeServer(id: 42);
+
+        $serverFormData = ServerFormData::fromServer($server);
+
+        self::assertSame(42, $serverFormData->serverId);
+        self::assertSame('Monza Cup', $serverFormData->name);
+        self::assertSame('Pitlane Monza', $serverFormData->serverName);
+        self::assertSame('monza', $serverFormData->track);
+        self::assertSame('monza_junior', $serverFormData->trackLayout);
+        self::assertSame(['ferrari_488', 'porsche_911'], $serverFormData->cars);
+        self::assertSame('join-secret', $serverFormData->password);
+        self::assertSame('admin-secret', $serverFormData->adminPassword);
+        self::assertSame(18, $serverFormData->maxClients);
+        self::assertSame(9600, $serverFormData->tcpPort);
+        self::assertSame(9601, $serverFormData->udpPort);
+        self::assertSame(9602, $serverFormData->httpPort);
+        self::assertSame(SessionType::Qualify, $serverFormData->sessionType);
+        self::assertSame(30, $serverFormData->sessionDuration);
+        self::assertSame(DurationUnit::Laps, $serverFormData->durationUnit);
+        self::assertSame('3_clear', $serverFormData->weatherGraphics);
+        self::assertSame(24, $serverFormData->ambientTemp);
+        self::assertSame(30, $serverFormData->trackTemp);
+        self::assertTrue($serverFormData->dynamicTrack);
+        self::assertSame(95, $serverFormData->trackGrip);
+        self::assertFalse($serverFormData->tcpNoDelay);
+        self::assertFalse($serverFormData->registerToLobby);
+    }
+
+    public function test_apply_to_writes_every_field_onto_the_existing_server(): void
+    {
+        // The target starts with values distinct from the form's, so every assertion proves a write.
+        $server = $this->makeServer(id: 7);
+
+        $serverFormData = new ServerFormData();
+        $serverFormData->name = 'Spa Enduro';
+        $serverFormData->serverName = 'Pitlane Spa';
+        $serverFormData->track = 'spa';
+        $serverFormData->trackLayout = 'spa_gp';
+        $serverFormData->cars = ['mclaren_720', 'bmw_m4'];
+        $serverFormData->password = 'new-join';
+        $serverFormData->adminPassword = 'new-admin';
+        $serverFormData->maxClients = 24;
+        $serverFormData->tcpPort = 9700;
+        $serverFormData->udpPort = 9701;
+        $serverFormData->httpPort = 9702;
+        $serverFormData->sessionType = SessionType::Race;
+        $serverFormData->sessionDuration = 45;
+        $serverFormData->durationUnit = DurationUnit::Minutes;
+        $serverFormData->weatherGraphics = '5_light_clouds';
+        $serverFormData->ambientTemp = 15;
+        $serverFormData->trackTemp = 20;
+        $serverFormData->dynamicTrack = false;
+        $serverFormData->trackGrip = 80;
+        $serverFormData->tcpNoDelay = true;
+        $serverFormData->registerToLobby = true;
+
+        $serverFormData->applyTo($server);
+
+        self::assertSame('Spa Enduro', $server->getName());
+        self::assertSame('Pitlane Spa', $server->getServerName());
+        self::assertSame('spa', $server->getTrack());
+        self::assertSame('spa_gp', $server->getTrackLayout());
+        self::assertSame(['mclaren_720', 'bmw_m4'], $server->getCars());
+        self::assertSame('new-join', $server->getPassword());
+        self::assertSame('new-admin', $server->getAdminPassword());
+        self::assertSame(24, $server->getMaxClients());
+        self::assertSame(9700, $server->getTcpPort());
+        self::assertSame(9701, $server->getUdpPort());
+        self::assertSame(9702, $server->getHttpPort());
+        self::assertSame(SessionType::Race, $server->getSessionType());
+        self::assertSame(45, $server->getSessionDuration());
+        self::assertSame(DurationUnit::Minutes, $server->getDurationUnit());
+        self::assertSame('5_light_clouds', $server->getWeatherGraphics());
+        self::assertSame(15, $server->getAmbientTemp());
+        self::assertSame(20, $server->getTrackTemp());
+        self::assertFalse($server->isDynamicTrack());
+        self::assertSame(80, $server->getTrackGrip());
+        self::assertTrue($server->isTcpNoDelay());
+        self::assertTrue($server->isRegisterToLobby());
+    }
+
+    public function test_apply_to_reindexes_the_cars_into_a_list(): void
+    {
+        $server = $this->makeServer(id: 7);
+
+        $serverFormData = new ServerFormData();
+        // A removed row leaves an index gap; the entity must receive a clean, re-indexed list.
+        $serverFormData->cars = [0 => 'ferrari_488', 2 => 'porsche_911'];
+
+        $serverFormData->applyTo($server);
+
+        self::assertSame(['ferrari_488', 'porsche_911'], $server->getCars());
+    }
+
+    public function test_apply_to_defaults_a_null_join_password_track_and_weather_to_empty_strings(): void
+    {
+        $server = $this->makeServer(id: 7);
+
+        // A fresh form model leaves these three nullable; the non-null entity setters must get ''.
+        new ServerFormData()->applyTo($server);
+
+        self::assertSame('', $server->getPassword());
         self::assertSame('', $server->getTrack());
         self::assertSame('', $server->getWeatherGraphics());
     }
@@ -293,6 +402,42 @@ final class ServerFormDataTest extends TestCase
         $serverFormData->weatherGraphics = 'not-installed';
 
         self::assertContains('weatherGraphics: The value you selected is not a valid choice.', $this->violations($serverFormData));
+    }
+
+    /**
+     * A fully-populated server carrying an id, for the edit round-trip. Booleans and numbers differ
+     * from the {@see ServerFormData} defaults so a dropped copy in fromServer() shows up as a failure.
+     */
+    private function makeServer(int $id): Server
+    {
+        $server = new Server(
+            'Monza Cup',
+            'Pitlane Monza',
+            'monza',
+            'monza_junior',
+            ['ferrari_488', 'porsche_911'],
+            'join-secret',
+            'admin-secret',
+            18,
+            9600,
+            9601,
+            9602,
+            SessionType::Qualify,
+            30,
+            DurationUnit::Laps,
+            '3_clear',
+            24,
+            30,
+            true,
+            95,
+            false,
+            false,
+        );
+
+        // The id is DB-generated and has no setter; the edit path reads it, so seed it via reflection.
+        new ReflectionProperty(Server::class, 'id')->setValue($server, $id);
+
+        return $server;
     }
 
     private function validFormData(): ServerFormData

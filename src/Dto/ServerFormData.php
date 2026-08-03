@@ -204,6 +204,40 @@ final class ServerFormData
     }
 
     /**
+     * Builds a pre-filled form model from an existing server, for the edit page. The server id is
+     * carried in {@see $serverId} so the {@see ContainerSlug} uniqueness check excludes this row.
+     */
+    public static function fromServer(Server $server): self
+    {
+        $serverFormData = new self();
+
+        $serverFormData->serverId = $server->getId();
+        $serverFormData->name = $server->getName();
+        $serverFormData->serverName = $server->getServerName();
+        $serverFormData->track = $server->getTrack();
+        $serverFormData->trackLayout = $server->getTrackLayout();
+        $serverFormData->cars = $server->getCars();
+        $serverFormData->password = $server->getPassword();
+        $serverFormData->adminPassword = $server->getAdminPassword();
+        $serverFormData->maxClients = $server->getMaxClients();
+        $serverFormData->tcpPort = $server->getTcpPort();
+        $serverFormData->udpPort = $server->getUdpPort();
+        $serverFormData->httpPort = $server->getHttpPort();
+        $serverFormData->sessionType = $server->getSessionType();
+        $serverFormData->sessionDuration = $server->getSessionDuration();
+        $serverFormData->durationUnit = $server->getDurationUnit();
+        $serverFormData->weatherGraphics = $server->getWeatherGraphics();
+        $serverFormData->ambientTemp = $server->getAmbientTemp();
+        $serverFormData->trackTemp = $server->getTrackTemp();
+        $serverFormData->dynamicTrack = $server->isDynamicTrack();
+        $serverFormData->trackGrip = $server->getTrackGrip();
+        $serverFormData->tcpNoDelay = $server->isTcpNoDelay();
+        $serverFormData->registerToLobby = $server->isRegisterToLobby();
+
+        return $serverFormData;
+    }
+
+    /**
      * Builds the entity from the validated form values.
      */
     public function toServer(): Server
@@ -231,5 +265,36 @@ final class ServerFormData
             tcpNoDelay: $this->tcpNoDelay,
             registerToLobby: $this->registerToLobby,
         );
+    }
+
+    /**
+     * Writes the validated form values back onto an existing server, so the edit page updates the
+     * managed row in place rather than inserting a new one. The container slug is left untouched: it
+     * is derived from the name only at creation, keeping the config directory and container stable.
+     */
+    public function applyTo(Server $server): void
+    {
+        $server
+            ->setName($this->name)
+            ->setServerName($this->serverName)
+            ->setTrack($this->track ?? '')
+            ->setTrackLayout($this->trackLayout)
+            ->setCars(array_values($this->cars))
+            ->setPassword($this->password ?? '')
+            ->setAdminPassword($this->adminPassword)
+            ->setMaxClients($this->maxClients)
+            ->setTcpPort($this->tcpPort)
+            ->setUdpPort($this->udpPort)
+            ->setHttpPort($this->httpPort)
+            ->setSessionType($this->sessionType)
+            ->setSessionDuration($this->sessionDuration)
+            ->setDurationUnit($this->durationUnit)
+            ->setWeatherGraphics($this->weatherGraphics ?? '')
+            ->setAmbientTemp($this->ambientTemp)
+            ->setTrackTemp($this->trackTemp)
+            ->setDynamicTrack($this->dynamicTrack)
+            ->setTrackGrip($this->trackGrip)
+            ->setTcpNoDelay($this->tcpNoDelay)
+            ->setRegisterToLobby($this->registerToLobby);
     }
 }
