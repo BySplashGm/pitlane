@@ -33,14 +33,16 @@ final class ServerVoter extends Voter
 
     public const string DELETE = 'SERVER_DELETE';
 
+    public const string CONTROL = 'SERVER_CONTROL';
+
     #[Override]
     protected function supports(string $attribute, mixed $subject): bool
     {
         return match ($attribute) {
             // Creating a server has no subject yet: the decision rests on the actor's role alone.
             self::CREATE => null === $subject,
-            // Viewing, editing and deleting act on a specific server.
-            self::VIEW, self::EDIT, self::DELETE => $subject instanceof Server,
+            // Viewing, editing, deleting and controlling act on a specific server.
+            self::VIEW, self::EDIT, self::DELETE, self::CONTROL => $subject instanceof Server,
             default => false,
         };
     }
@@ -58,8 +60,9 @@ final class ServerVoter extends Voter
             // Creating, editing and deleting a server rest on the actor's role alone: owner and admin
             // only. Editing settings is denied to operators even for a server assigned to them.
             self::CREATE, self::EDIT, self::DELETE => $actor->hasFullServerAccess(),
-            // The only remaining supported attribute is VIEW, scoped per assignment: owner and admin
-            // see every server, operators only the ones assigned to them.
+            // VIEW and CONTROL are scoped per assignment: owner and admin reach every server, operators
+            // only the ones assigned to them. Operators are read-only on settings but may start, stop
+            // and restart the servers they own.
             default => $subject instanceof Server && $actor->hasAccessTo($subject),
         };
     }
