@@ -2052,16 +2052,16 @@
         },
         {
             "name": "symfony/cache",
-            "version": "v8.1.2",
+            "version": "v8.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/cache.git",
-                "reference": "8ce793736c9b178066c6110335c8647103919567"
+                "reference": "77aaed12441eff519d7028cb851f893d7969f768"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/cache/zipball/8ce793736c9b178066c6110335c8647103919567",
-                "reference": "8ce793736c9b178066c6110335c8647103919567",
+                "url": "https://api.github.com/repos/symfony/cache/zipball/77aaed12441eff519d7028cb851f893d7969f768",
+                "reference": "77aaed12441eff519d7028cb851f893d7969f768",
                 "shasum": ""
             },
             "require": {
@@ -2127,7 +2127,7 @@
                 "psr6"
             ],
             "support": {
-                "source": "https://github.com/symfony/cache/tree/v8.1.2"
+                "source": "https://github.com/symfony/cache/tree/v8.1.4"
             },
             "funding": [
                 {
@@ -2147,7 +2147,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-29T04:09:39+00:00"
+            "time": "2026-08-01T16:22:31+00:00"
         },
         {
             "name": "symfony/cache-contracts",
@@ -2308,16 +2308,16 @@
         },
         {
             "name": "symfony/config",
-            "version": "v8.1.2",
+            "version": "v8.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/config.git",
-                "reference": "e8ee277684fa228d37795ff160b901eeda1ade5d"
+                "reference": "cb84364d9b47030c6979422d6911f9ea6603f5a2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/config/zipball/e8ee277684fa228d37795ff160b901eeda1ade5d",
-                "reference": "e8ee277684fa228d37795ff160b901eeda1ade5d",
+                "url": "https://api.github.com/repos/symfony/config/zipball/cb84364d9b47030c6979422d6911f9ea6603f5a2",
+                "reference": "cb84364d9b47030c6979422d6911f9ea6603f5a2",
                 "shasum": ""
             },
             "require": {
@@ -2362,7 +2362,7 @@
             "description": "Helps you find, load, combine, autofill and validate configuration values of any kind",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/config/tree/v8.1.2"
+                "source": "https://github.com/symfony/config/tree/v8.1.4"
             },
             "funding": [
                 {
@@ -2382,7 +2382,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-22T15:42:13+00:00"
+            "time": "2026-07-31T12:43:13+00:00"
         },
         {
             "name": "symfony/console",
@@ -2486,16 +2486,16 @@
         },
         {
             "name": "symfony/dependency-injection",
-            "version": "v8.1.2",
+            "version": "v8.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/dependency-injection.git",
-                "reference": "9bc6af9fadb6e7a614606e82e040fd4ac95c1d42"
+                "reference": "c06539a770773c73695f687a30bd93b555860c1c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/dependency-injection/zipball/9bc6af9fadb6e7a614606e82e040fd4ac95c1d42",
-                "reference": "9bc6af9fadb6e7a614606e82e040fd4ac95c1d42",
+                "url": "https://api.github.com/repos/symfony/dependency-injection/zipball/c06539a770773c73695f687a30bd93b555860c1c",
+                "reference": "c06539a770773c73695f687a30bd93b555860c1c",
                 "shasum": ""
             },
             "require": {
@@ -2543,7 +2543,7 @@
             "description": "Allows you to standardize and centralize the way objects are constructed in your application",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/dependency-injection/tree/v8.1.2"
+                "source": "https://github.com/symfony/dependency-injection/tree/v8.1.4"
             },
             "funding": [
                 {
@@ -2563,7 +2563,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-28T13:31:46+00:00"
+            "time": "2026-08-07T15:02:39+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",
@@ -3517,16 +3517,16 @@
         },
         {
             "name": "symfony/framework-bundle",
-            "version": "v8.1.2",
+            "version": "v8.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/framework-bundle.git",
-                "reference": "e491f51db8558f6e29b62237ce24ef680c5c37cf"
+                "reference": "780a46666c5138f3f064e953e9287f9f560fe8d5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/framework-bundle/zipball/e491f51db8558f6e29b62237ce24ef680c5c37cf",
-                "reference": "e491f51db8558f6e29b62237ce24ef680c5c37cf",
+                "url": "https://api.github.com/repos/symfony/framework-bundle/zipball/780a46666c5138f3f064e953e9287f9f560fe8d5",
+                "reference": "780a46666c5138f3f064e953e9287f9f560fe8d5",
                 "shasum": ""
             },
             "require": {
@@ -3636,7 +3636,7 @@
             "description": "Provides a tight integration between Symfony components and the Symfony full-stack framework",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/framework-bundle/tree/v8.1.2"
+                "source": "https://github.com/symfony/framework-bundle/tree/v8.1.4"
             },
             "funding": [
                 {
@@ -3656,7 +3656,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-26T11:55:56+00:00"
+            "time": "2026-08-06T09:53:08+00:00"
         },
         {
             "name": "symfony/http-client",
@@ -3839,16 +3839,16 @@
         },
         {
             "name": "symfony/http-foundation",
-            "version": "v8.1.2",
+            "version": "v8.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-foundation.git",
-                "reference": "9943adbf5a64e2951a8d9eb0485310d55624f0e8"
+                "reference": "57e712b75f2d0bc8844edbdb18a81dab6f9d55c2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-foundation/zipball/9943adbf5a64e2951a8d9eb0485310d55624f0e8",
-                "reference": "9943adbf5a64e2951a8d9eb0485310d55624f0e8",
+                "url": "https://api.github.com/repos/symfony/http-foundation/zipball/57e712b75f2d0bc8844edbdb18a81dab6f9d55c2",
+                "reference": "57e712b75f2d0bc8844edbdb18a81dab6f9d55c2",
                 "shasum": ""
             },
             "require": {
@@ -3896,7 +3896,7 @@
             "description": "Defines an object-oriented layer for the HTTP specification",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/http-foundation/tree/v8.1.2"
+                "source": "https://github.com/symfony/http-foundation/tree/v8.1.4"
             },
             "funding": [
                 {
@@ -3916,7 +3916,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-29T07:22:54+00:00"
+            "time": "2026-08-07T15:02:39+00:00"
         },
         {
             "name": "symfony/http-kernel",
