@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.2.0
+        uses: docker/setup-buildx-action@v4.3.0
 
       # acServer and its content/system folders are proprietary and gitignored
       # (see ac-server/.gitignore) — CI only needs to confirm the Dockerfile builds,
