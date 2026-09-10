@@ -38,6 +38,13 @@ class ServerRepository extends ServiceEntityRepository implements ServerReposito
     }
 
     #[Override]
+    public function remove(Server $server): void
+    {
+        $this->getEntityManager()->remove($server);
+        $this->getEntityManager()->flush();
+    }
+
+    #[Override]
     public function findBySlug(string $containerSlug): ?Server
     {
         return $this->findOneBy(['containerSlug' => $containerSlug]);

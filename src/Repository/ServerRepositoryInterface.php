@@ -27,6 +27,11 @@ interface ServerRepositoryInterface extends ObjectRepository
      */
     public function save(Server $server): void;
 
+    /**
+     * Removes the given server and flushes the deletion to the database.
+     */
+    public function remove(Server $server): void;
+
     public function findBySlug(string $containerSlug): ?Server;
 
     /**

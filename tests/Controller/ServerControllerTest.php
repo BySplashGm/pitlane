@@ -29,6 +29,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Filesystem\Exception\IOException;
 
 final class ServerControllerTest extends WebTestCase
 {
@@ -360,6 +361,140 @@ final class ServerControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Could not restart server "Slugless Restart".');
         // The MissingContainerSlugException message is surfaced as the reason.
         self::assertSelectorTextContains('body', 'container slug is missing');
+    }
+
+    public function test_the_owner_can_delete_a_server(): void
+    {
+        $server = $this->persistServer('Deletable Ring', portOffset: 28);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'stopped');
+        $dockerService->expects(self::once())->method('removeContainer')->with(self::isInstanceOf(Server::class));
+        // Following the redirect renders the dashboard, which probes bulk status for the remaining servers.
+        $dockerService->method('getBulkStatus')->willReturn([]);
+
+        $acConfigService = $this->createMock(AcConfigServiceInterface::class);
+        $acConfigService->expects(self::once())->method('deleteConfig')->with(self::isInstanceOf(Server::class));
+        self::getContainer()->set(AcConfigServiceInterface::class, $acConfigService);
+
+        // submitDelete() first GETs the detail page to scrape the CSRF token, which probes the ports.
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->submitDelete($id);
+
+        self::assertResponseRedirects('/');
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Server "Deletable Ring" deleted.');
+
+        $this->entityManager->clear();
+        self::assertNull($this->entityManager->getRepository(Server::class)->find($id));
+    }
+
+    public function test_a_delete_failure_is_reported_as_a_flash(): void
+    {
+        $server = $this->persistServer('Undeletable Ring', portOffset: 29);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'stopped');
+        $dockerService->expects(self::once())->method('removeContainer')->willThrowException(new RuntimeException('daemon down'));
+        // Following the redirect renders the detail page, which probes the ports.
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->submitDelete($id);
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Could not delete server "Undeletable Ring".');
+        self::assertSelectorTextContains('body', 'daemon down');
+
+        $this->entityManager->clear();
+        self::assertInstanceOf(Server::class, $this->entityManager->getRepository(Server::class)->find($id));
+    }
+
+    public function test_a_delete_failure_with_a_missing_container_slug_is_reported_as_a_flash(): void
+    {
+        $server = $this->persistServer('Slugless Delete', portOffset: 30);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'stopped');
+        $dockerService->expects(self::once())->method('removeContainer')->willThrowException(new MissingContainerSlugException());
+        // Following the redirect renders the detail page, which probes the ports.
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->submitDelete($id);
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Could not delete server "Slugless Delete".');
+        self::assertSelectorTextContains('body', 'container slug is missing');
+
+        $this->entityManager->clear();
+        self::assertInstanceOf(Server::class, $this->entityManager->getRepository(Server::class)->find($id));
+    }
+
+    public function test_a_delete_config_failure_is_reported_as_a_flash(): void
+    {
+        $server = $this->persistServer('Config Locked', portOffset: 31);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'stopped');
+        $dockerService->expects(self::once())->method('removeContainer');
+
+        $acConfigService = $this->createMock(AcConfigServiceInterface::class);
+        $acConfigService->expects(self::once())->method('deleteConfig')->willThrowException(new IOException('permission denied'));
+        self::getContainer()->set(AcConfigServiceInterface::class, $acConfigService);
+
+        // Following the redirect renders the detail page, which probes the ports.
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->submitDelete($id);
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Could not delete server "Config Locked".');
+        self::assertSelectorTextContains('body', 'permission denied');
+
+        $this->entityManager->clear();
+        self::assertInstanceOf(Server::class, $this->entityManager->getRepository(Server::class)->find($id));
+    }
+
+    public function test_an_invalid_csrf_token_rejects_the_delete_without_touching_docker(): void
+    {
+        $server = $this->persistServer('Guarded Delete', portOffset: 32);
+        $id = (int) $server->getId();
+
+        $dockerService = $this->mockDocker(status: 'stopped');
+        $dockerService->expects(self::never())->method('removeContainer');
+        // Following the redirect renders the detail page, which probes the ports.
+        $this->stubPorts(['tcp' => true, 'udp' => null, 'http' => true]);
+
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+        $this->kernelBrowser->request('POST', \sprintf('/server/%d/delete', $id), ['_csrf_token' => 'forged-token']);
+
+        self::assertResponseRedirects(\sprintf('/server/%d', $id));
+        $this->kernelBrowser->followRedirect();
+        self::assertSelectorTextContains('body', 'Invalid CSRF token, please retry.');
+    }
+
+    public function test_an_operator_cannot_delete_a_server(): void
+    {
+        $server = $this->persistServer('Off Limits Delete', portOffset: 33);
+
+        $user = $this->persistUser('operator@pitlane.test', UserRole::Operator);
+        $user->assignServer($server);
+
+        $this->entityManager->flush();
+
+        $this->kernelBrowser->loginUser($user);
+        $this->kernelBrowser->request('POST', \sprintf('/server/%d/delete', (int) $server->getId()), ['_csrf_token' => 'irrelevant']);
+
+        // The voter denies before the action body runs, so no CSRF token could unlock it, even for a
+        // server assigned to this operator.
+        self::assertResponseStatusCodeSame(403);
     }
 
     public function test_an_invalid_csrf_token_rejects_the_action_without_touching_docker(): void
@@ -731,6 +866,19 @@ final class ServerControllerTest extends WebTestCase
     private function submitControl(int $id, string $verb): void
     {
         $actionPath = \sprintf('/server/%d/%s', $id, $verb);
+        $crawler = $this->kernelBrowser->request('GET', \sprintf('/server/%d', $id));
+        $token = (string) $crawler->filter(\sprintf('form[action="%s"] input[name="_csrf_token"]', $actionPath))->attr('value');
+
+        $this->kernelBrowser->request('POST', $actionPath, ['_csrf_token' => $token]);
+    }
+
+    /**
+     * Reads the detail page so the client holds the stateless CSRF cookie and the delete form's token,
+     * then posts the delete form.
+     */
+    private function submitDelete(int $id): void
+    {
+        $actionPath = \sprintf('/server/%d/delete', $id);
         $crawler = $this->kernelBrowser->request('GET', \sprintf('/server/%d', $id));
         $token = (string) $crawler->filter(\sprintf('form[action="%s"] input[name="_csrf_token"]', $actionPath))->attr('value');
 

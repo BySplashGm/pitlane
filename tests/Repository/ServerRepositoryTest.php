@@ -58,6 +58,18 @@ final class ServerRepositoryTest extends KernelTestCase
         self::assertSame('Spa Endurance', $reloaded->getName());
     }
 
+    public function test_remove_deletes_and_flushes_the_server(): void
+    {
+        $server = $this->persistServer('Spa Endurance');
+        $id = (int) $server->getId();
+
+        $this->serverRepository->remove($server);
+        // Clearing drops every managed entity: the server is only gone if remove() flushed it.
+        $this->entityManager->clear();
+
+        self::assertNull($this->serverRepository->find($id));
+    }
+
     public function test_find_by_slug_returns_null_when_no_server_matches(): void
     {
         // A server with a different slug is present so the finder must filter on the slug,

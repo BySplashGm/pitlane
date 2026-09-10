@@ -229,6 +229,37 @@ final class ServerController extends AbstractController
         );
     }
 
+    #[Route(path: '/server/{id}/delete', name: 'app_server_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted(ServerVoter::DELETE, subject: 'server')]
+    public function delete(Request $request, Server $server): RedirectResponse
+    {
+        $name = $server->getName();
+        $showRedirectResponse = $this->redirectToRoute('app_server_show', ['id' => $server->getId()]);
+
+        if (!$this->isCsrfTokenValid('server_delete', $request->getPayload()->getString('_csrf_token'))) {
+            $this->addFlash('error', 'Invalid CSRF token, please retry.');
+
+            return $showRedirectResponse;
+        }
+
+        try {
+            $this->dockerService->removeContainer($server);
+            $this->acConfigService->deleteConfig($server);
+            $this->serverRepository->remove($server);
+        } catch (RuntimeException|MissingContainerSlugException $exception) {
+            // A Docker daemon hiccup, a missing container slug, or a filesystem failure leaves the
+            // server row and its config in place: report it and keep the user on the detail page,
+            // never surfaced as a 500.
+            $this->addFlash('error', \sprintf('Could not delete server "%s". %s', $name, $exception->getMessage()));
+
+            return $showRedirectResponse;
+        }
+
+        $this->addFlash('success', \sprintf('Server "%s" deleted.', $name));
+
+        return $this->redirectToRoute('app_dashboard_index');
+    }
+
     /**
      * Shared body for the start/stop/restart actions: rejects a bad CSRF token, runs the Docker
      * operation, and turns success or any Docker/config failure into a flash message. Always lands

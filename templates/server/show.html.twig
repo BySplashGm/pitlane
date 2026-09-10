@@ -37,9 +37,12 @@
                 </a>
             {% endif %}
             {% if is_granted(constant('App\\Security\\Voter\\ServerVoter::DELETE'), server) %}
-                <button type="button" disabled class="cursor-not-allowed rounded-md border border-[#e10600]/40 px-3 py-1.5 text-sm font-medium text-[#ff8a85] opacity-50" title="Coming soon">
-                    Delete
-                </button>
+                <form method="post" action="{{ path('app_server_delete', {id: server.id}) }}" data-turbo-confirm="Delete server &quot;{{ server.name }}&quot;? This cannot be undone.">
+                    <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('server_delete') }}">
+                    <button type="submit" class="rounded-md border border-[#e10600]/40 px-3 py-1.5 text-sm font-medium text-[#ff8a85] hover:bg-[#e10600]/10">
+                        Delete
+                    </button>
+                </form>
             {% endif %}
         </div>
     </div>
