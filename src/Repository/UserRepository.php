@@ -48,4 +48,35 @@ class UserRepository extends ServiceEntityRepository implements UserRepositoryIn
     {
         return null !== $this->findOneBy(['userRole' => UserRole::Owner]);
     }
+
+    #[Override]
+    public function save(User $user): void
+    {
+        $this->getEntityManager()->persist($user);
+        $this->getEntityManager()->flush();
+    }
+
+    #[Override]
+    public function remove(User $user): void
+    {
+        $this->getEntityManager()->remove($user);
+        $this->getEntityManager()->flush();
+    }
+
+    /**
+     * @return list<User>
+     */
+    #[Override]
+    public function findAllOrderedByEmail(): array
+    {
+        /** @var list<User> $users */
+        $users = $this->createQueryBuilder('u')
+            ->addSelect('assignedServers')
+            ->leftJoin('u.assignedServers', 'assignedServers')
+            ->orderBy('u.email', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $users;
+    }
 }

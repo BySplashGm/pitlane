@@ -1,0 +1,64 @@
+{# Shared user form body, included by new.html.twig and edit.html.twig between form_start/form_end.
+   The assigned-servers picker only renders on edit, when `user` and `availableServers` (a list of
+   {id, name} maps) are in context. #}
+{% macro field(field, label, help, attrs = {}) %}
+    <div class="flex flex-col gap-1">
+        {{ form_label(field, label, {label_attr: {class: 'text-sm font-medium text-fg'}}) }}
+        {{ form_widget(field, {attr: {class: 'w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted focus:border-brand focus:outline-none'}|merge(attrs)}) }}
+        {% if help %}<p class="text-xs text-muted">{{ help }}</p>{% endif %}
+        {{ form_errors(field) }}
+    </div>
+{% endmacro %}
+
+{% import _self as ui %}
+
+{# On edit, leaving the password blank keeps the existing one — same "editing" convention as the
+   server form's admin-password field. #}
+{% set editingUser = form.vars.value.userId is not null %}
+
+{{ form_errors(form) }}
+
+<fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+    <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Account</legend>
+    {{ ui.field(form.email, 'Email', null) }}
+    {{ ui.field(form.plainPassword.first, editingUser ? 'Reset password' : 'Password', editingUser ? 'Leave blank to keep the current password. At least 12 characters otherwise.' : 'At least 12 characters.') }}
+    {{ ui.field(form.plainPassword.second, editingUser ? 'Repeat new password' : 'Repeat password', null) }}
+    {{ form_errors(form.plainPassword) }}
+    {% if form.role is defined %}
+        {{ ui.field(form.role, 'Role', 'The owner account is created separately and is never offered here.') }}
+    {% else %}
+        <p class="text-xs text-muted">The owner role cannot be changed here.</p>
+    {% endif %}
+</fieldset>
+
+{% if form.assignedServers is defined %}
+    <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+        <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Assigned servers</legend>
+        <div class="flex flex-col gap-2"
+             data-assigned-servers
+             data-assigned-servers-name="{{ form.assignedServers.vars.full_name }}"
+             data-assigned-servers-options="{{ availableServers|json_encode|e('html_attr') }}">
+            <label for="assigned-servers-search" class="text-sm font-medium text-fg">Assigned servers</label>
+            {# The rows are rendered by hand below; keep form_rest from re-emitting them as duplicate inputs. #}
+            {% do form.assignedServers.setRendered %}
+            <div class="relative">
+                <input id="assigned-servers-search" type="search" data-assigned-servers-search autocomplete="off" placeholder="Search a server to assign…"
+                       role="combobox" aria-controls="assigned-servers-suggestions" aria-expanded="false" aria-autocomplete="list"
+                       class="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted focus:border-brand focus:outline-none">
+                <ul id="assigned-servers-suggestions" role="listbox" aria-label="Servers" data-assigned-servers-suggestions
+                    class="absolute z-10 mt-1 hidden max-h-56 w-full overflow-auto rounded-md border border-border bg-surface shadow"></ul>
+            </div>
+            <ul data-assigned-servers-list class="flex flex-col gap-2">
+                {% for server in form.assignedServers.vars.data %}
+                    <li class="flex items-center gap-2" data-assigned-servers-row data-assigned-servers-id="{{ server.id }}">
+                        <span class="flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg">{{ server.name }}</span>
+                        <input type="hidden" name="{{ form.assignedServers.vars.full_name }}" value="{{ server.id }}">
+                        <button type="button" data-assigned-servers-remove class="rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">Remove</button>
+                    </li>
+                {% endfor %}
+            </ul>
+            <p class="text-xs text-muted">Search servers and add them; a server can only be assigned once.</p>
+            {{ form_errors(form.assignedServers) }}
+        </div>
+    </fieldset>
+{% endif %}

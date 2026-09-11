@@ -70,6 +70,36 @@ final class UserTest extends TestCase
         self::assertSame('hashed-password', $user->getPassword());
     }
 
+    public function test_email_can_be_set(): void
+    {
+        $user = new User('operator@pitlane.test', UserRole::Operator);
+
+        $user->setEmail('renamed@pitlane.test');
+
+        self::assertSame('renamed@pitlane.test', $user->getEmail());
+    }
+
+    public function test_role_can_be_set(): void
+    {
+        $user = new User('operator@pitlane.test', UserRole::Operator);
+
+        $user->setRole(UserRole::Admin);
+
+        self::assertSame(UserRole::Admin, $user->getRole());
+    }
+
+    public function test_assigned_servers_can_be_replaced_wholesale(): void
+    {
+        $user = new User('operator@pitlane.test', UserRole::Operator);
+        $server = $this->createServer();
+        $user->assignServer($this->createServer());
+
+        $user->setAssignedServers([$server]);
+
+        self::assertCount(1, $user->getAssignedServers());
+        self::assertTrue($user->getAssignedServers()->contains($server));
+    }
+
     public function test_roles_include_role_specific_and_default_role(): void
     {
         $user = new User('admin@pitlane.test', UserRole::Admin);

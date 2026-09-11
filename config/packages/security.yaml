@@ -29,14 +29,8 @@ security:
                 target: app_login
                 enable_csrf: true
 
-            remember_me:
-                secret: '%kernel.secret%'
-                lifetime: 2592000 # 30 days
-                path: /
-                remember_me_parameter: remember_me
-
             # https://symfony.com/doc/current/security/impersonating_user.html
-            # switch_user: true
+            switch_user: { role: ROLE_OWNER }
 
     # Note: Only the *first* matching rule is applied
     access_control:

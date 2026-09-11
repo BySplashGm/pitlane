@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit {{ user.email }} · Pitlane{% endblock %}
+
+{% block body %}
+    <div class="mx-auto max-w-lg">
+        <div class="mb-6">
+            <h1 class="text-2xl font-semibold tracking-tight text-fg">Edit user</h1>
+            <p class="mt-1 text-sm text-muted">{{ user.email }}</p>
+        </div>
+
+        {{ form_start(form, {attr: {class: 'flex flex-col gap-6'}}) }}
+            {% include 'user/_form.html.twig' %}
+
+            <div class="flex items-center justify-end gap-3">
+                <a href="{{ path('app_user_index') }}" class="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">Cancel</a>
+                <button type="submit" class="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90">Save changes</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ parent() }}
+    {% include 'user/_form_scripts.html.twig' %}
+{% endblock %}

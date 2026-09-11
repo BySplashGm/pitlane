@@ -21,18 +21,30 @@ use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
- * @extends Voter<string, User>
+ * @extends Voter<string, User|null>
  */
 final class UserVoter extends Voter
 {
+    public const string LIST = 'USER_LIST';
+
+    public const string CREATE = 'USER_CREATE';
+
     public const string EDIT = 'USER_EDIT';
 
     public const string DELETE = 'USER_DELETE';
 
+    public const string IMPERSONATE = 'USER_IMPERSONATE';
+
     #[Override]
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return \in_array($attribute, [self::EDIT, self::DELETE], true) && $subject instanceof User;
+        return match ($attribute) {
+            // Listing and creating users have no subject: the decision rests on the actor's role alone.
+            self::LIST, self::CREATE => null === $subject,
+            // Editing, deleting and impersonating act on a specific user.
+            self::EDIT, self::DELETE, self::IMPERSONATE => $subject instanceof User,
+            default => false,
+        };
     }
 
     #[Override]
@@ -42,6 +54,17 @@ final class UserVoter extends Voter
 
         if (!$actor instanceof User) {
             return false;
+        }
+
+        if (\in_array($attribute, [self::LIST, self::CREATE], true)) {
+            return $actor->hasFullServerAccess();
+        }
+
+        \assert($subject instanceof User);
+
+        // Only the owner may impersonate another account.
+        if (self::IMPERSONATE === $attribute) {
+            return UserRole::Owner === $actor->getRole();
         }
 
         // The owner account can never be edited or deleted by anyone but the owner.

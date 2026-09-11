@@ -40,6 +40,11 @@
                                 New server
                             </a>
                         {% endif %}
+                        {% if is_granted(constant('App\\Security\\Voter\\UserVoter::LIST')) %}
+                            <a href="{{ path('app_user_index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                                Users
+                            </a>
+                        {% endif %}
                     </div>
 
                     <div class="flex items-center gap-2">
@@ -52,12 +57,21 @@
                                 </svg>
                             </button>
                             <div id="user-menu" data-dropdown-menu aria-labelledby="user-menu-trigger" hidden class="absolute right-0 z-20 mt-2 w-48 rounded-md border border-border bg-surface py-1">
-                                <form method="post" action="{{ path('app_logout') }}">
-                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-                                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-muted hover:bg-surface-hover hover:text-fg">
-                                        Sign out
-                                    </button>
-                                </form>
+                                <a href="{{ path('app_account_edit') }}" class="block px-4 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">
+                                    Account settings
+                                </a>
+                                {% if is_granted('IS_IMPERSONATOR') %}
+                                    <a href="{{ path('app_dashboard_index', { _switch_user: '_exit' }) }}" class="block px-4 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">
+                                        Exit impersonation
+                                    </a>
+                                {% else %}
+                                    <form method="post" action="{{ path('app_logout') }}">
+                                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                                        <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-muted hover:bg-surface-hover hover:text-fg">
+                                            Sign out
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -81,6 +95,14 @@
                             New server
                         </a>
                     {% endif %}
+                    {% if is_granted(constant('App\\Security\\Voter\\UserVoter::LIST')) %}
+                        <a href="{{ path('app_user_index') }}" class="block rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                            Users
+                        </a>
+                    {% endif %}
+                    <a href="{{ path('app_account_edit') }}" class="block rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                        Account settings
+                    </a>
                 </div>
             </header>
         {% endif %}
