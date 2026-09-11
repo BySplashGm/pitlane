@@ -21,7 +21,6 @@ use Override;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Security\Core\Authentication\Token\RememberMeToken;
 
 final class AccountControllerTest extends WebTestCase
 {
@@ -182,45 +181,6 @@ final class AccountControllerTest extends WebTestCase
         self::assertTrue($this->userPasswordHasher->isPasswordValid($unchanged, self::CURRENT_PASSWORD));
     }
 
-    public function test_a_remembered_only_session_is_sent_back_to_login_to_change_email(): void
-    {
-        $user = $this->persistUser('operator@pitlane.test');
-        $id = (int) $user->getId();
-        $this->loginAsRememberedOnly($user);
-
-        $this->submitAccountForm([
-            'email' => 'renamed@pitlane.test',
-            'currentPassword' => self::CURRENT_PASSWORD,
-        ]);
-
-        self::assertResponseRedirects('/login');
-
-        $this->entityManager->clear();
-        $unchanged = $this->entityManager->getRepository(User::class)->find($id);
-        self::assertInstanceOf(User::class, $unchanged);
-        self::assertSame('operator@pitlane.test', $unchanged->getEmail());
-    }
-
-    public function test_a_remembered_only_session_can_still_change_the_password_without_touching_the_email(): void
-    {
-        $user = $this->persistUser('operator@pitlane.test');
-        $id = (int) $user->getId();
-        $this->loginAsRememberedOnly($user);
-
-        $this->submitAccountForm([
-            'email' => 'operator@pitlane.test',
-            'currentPassword' => self::CURRENT_PASSWORD,
-            'newPassword' => ['first' => 'Brand!New9Passw0rd', 'second' => 'Brand!New9Passw0rd'],
-        ]);
-
-        self::assertResponseRedirects('/account');
-
-        $this->entityManager->clear();
-        $updated = $this->entityManager->getRepository(User::class)->find($id);
-        self::assertInstanceOf(User::class, $updated);
-        self::assertTrue($this->userPasswordHasher->isPasswordValid($updated, 'Brand!New9Passw0rd'));
-    }
-
     #[Override]
     protected function tearDown(): void
     {
@@ -237,20 +197,6 @@ final class AccountControllerTest extends WebTestCase
         $this->entityManager->flush();
 
         return $user;
-    }
-
-    /**
-     * Puts a {@see RememberMeToken} in the session instead of logging in through the form, simulating a
-     * session restored from the remember-me cookie alone rather than a fresh password submission.
-     */
-    private function loginAsRememberedOnly(User $user): void
-    {
-        $rememberMeToken = new RememberMeToken($user, 'main');
-
-        $session = $this->kernelBrowser->getSession();
-        self::assertNotNull($session);
-        $session->set('_security_main', serialize($rememberMeToken));
-        $session->save();
     }
 
     /**

@@ -50,13 +50,6 @@ final class AccountController extends AbstractController
             if (!$this->userPasswordHasher->isPasswordValid($user, $accountFormData->currentPassword)) {
                 $form->get('currentPassword')->addError(new FormError('Current password is incorrect.'));
             } else {
-                // Changing the email is sensitive enough to require a freshly-entered password: a
-                // remember-me-only session gets bounced back to the login form instead of being allowed
-                // through on cookie-based re-authentication alone.
-                if ($accountFormData->email !== $user->getEmail()) {
-                    $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
-                }
-
                 $accountFormData->applyTo($user);
 
                 if ('' !== $accountFormData->newPassword) {

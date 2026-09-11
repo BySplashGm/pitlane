@@ -29,11 +29,6 @@
                            class="w-full rounded-md border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder-muted/60">
                 </div>
 
-                <label class="flex items-center gap-2 text-sm text-muted">
-                    <input type="checkbox" name="remember_me" id="rememberMe" class="h-4 w-4 rounded border-border-strong bg-bg accent-brand">
-                    Remember me for 30 days
-                </label>
-
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 
                 <button type="submit"
