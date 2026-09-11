@@ -23,4 +23,21 @@ use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 interface UserRepositoryInterface extends ObjectRepository, PasswordUpgraderInterface
 {
     public function ownerExists(): bool;
+
+    /**
+     * Persists the given user and flushes it to the database.
+     */
+    public function save(User $user): void;
+
+    /**
+     * Removes the given user and flushes the deletion to the database.
+     */
+    public function remove(User $user): void;
+
+    /**
+     * Every user, ordered by email — the set the user management page lists.
+     *
+     * @return list<User>
+     */
+    public function findAllOrderedByEmail(): array;
 }

@@ -89,6 +89,50 @@ final class UserRepositoryTest extends KernelTestCase
         $this->userRepository->upgradePassword(new InMemoryUser('system', null), 'new-hash');
     }
 
+    public function test_save_persists_a_new_user(): void
+    {
+        $user = new User('admin@pitlane.test', UserRole::Admin);
+        $user->setPassword('hashed-password');
+
+        $this->userRepository->save($user);
+        $this->entityManager->clear();
+
+        $reloaded = $this->userRepository->findOneBy(['email' => 'admin@pitlane.test']);
+        self::assertInstanceOf(User::class, $reloaded);
+    }
+
+    public function test_remove_deletes_the_user(): void
+    {
+        $user = new User('admin@pitlane.test', UserRole::Admin);
+        $user->setPassword('hashed-password');
+
+        $this->userRepository->save($user);
+
+        $this->userRepository->remove($user);
+
+        $this->entityManager->clear();
+
+        self::assertNull($this->userRepository->findOneBy(['email' => 'admin@pitlane.test']));
+    }
+
+    public function test_find_all_ordered_by_email_sorts_ascending(): void
+    {
+        $second = new User('second@pitlane.test', UserRole::Admin);
+        $second->setPassword('hashed-password');
+
+        $first = new User('first@pitlane.test', UserRole::Operator);
+        $first->setPassword('hashed-password');
+
+        $this->entityManager->persist($second);
+        $this->entityManager->persist($first);
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $users = $this->userRepository->findAllOrderedByEmail();
+
+        self::assertSame(['first@pitlane.test', 'second@pitlane.test'], array_map(static fn (User $user): string => $user->getEmail(), $users));
+    }
+
     #[Override]
     protected function tearDown(): void
     {
