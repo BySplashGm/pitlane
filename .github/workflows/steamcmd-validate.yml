@@ -1,0 +1,27 @@
+name: SteamCMD build validation (throwaway)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ac-server image via SteamCMD (anonymous)
+        run: docker build -f ac-server/Dockerfile.steamcmd -t ac-server:steamcmd-validate ac-server
+
+      - name: Inspect installed tree
+        run: |
+          docker run --rm --entrypoint sh ac-server:steamcmd-validate -c '
+            echo "--- /ac-server ---"
+            ls -la /ac-server
+            echo "--- magic bytes of any acServer* ---"
+            for f in /ac-server/acServer /ac-server/acServer.exe; do
+              if [ -e "$f" ]; then
+                echo "$f:"
+                od -An -tx1 -N4 "$f"
+              fi
+            done
+          '
