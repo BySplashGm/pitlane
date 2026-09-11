@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Users · Pitlane{% endblock %}
+
+{% block body %}
+    <div class="flex items-center justify-between gap-4">
+        <h1 class="text-2xl font-semibold tracking-tight text-fg">Users</h1>
+        {% if is_granted(constant('App\\Security\\Voter\\UserVoter::CREATE')) %}
+            <a href="{{ path('app_user_new') }}" class="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+                New user
+            </a>
+        {% endif %}
+    </div>
+
+    {% if users is empty %}
+        <div class="mt-6 rounded-lg border border-dashed border-border bg-surface px-4 py-12 text-center">
+            <p class="text-lg font-medium text-fg">No users yet</p>
+        </div>
+    {% else %}
+        <div class="mt-6 overflow-x-auto rounded-lg border border-border bg-surface">
+            <table class="w-full text-left text-sm">
+                <thead class="border-b border-border text-muted">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 font-medium">Email</th>
+                        <th scope="col" class="px-4 py-3 font-medium">Role</th>
+                        <th scope="col" class="px-4 py-3 font-medium">Assigned servers</th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            <span class="sr-only">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                    {% for user in users %}
+                        <tr>
+                            <td class="px-4 py-3 text-fg">{{ user.email }}</td>
+                            <td class="px-4 py-3 capitalize text-fg">{{ user.role.value }}</td>
+                            <td class="px-4 py-3 text-fg">{{ user.assignedServers|length }}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-end gap-2">
+                                    {% if is_granted(constant('App\\Security\\Voter\\UserVoter::EDIT'), user) %}
+                                        <a href="{{ path('app_user_edit', { id: user.id }) }}" class="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                                            Edit
+                                        </a>
+                                    {% endif %}
+                                    {% if is_granted(constant('App\\Security\\Voter\\UserVoter::DELETE'), user) %}
+                                        <form method="post" action="{{ path('app_user_delete', { id: user.id }) }}" data-turbo-confirm="Delete user &quot;{{ user.email }}&quot;? This cannot be undone.">
+                                            <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('user_delete') }}">
+                                            <button type="submit" class="cursor-pointer rounded-md border border-[#e10600]/40 px-2.5 py-1 text-xs font-medium text-[#ff8a85] transition-colors hover:bg-[#e10600]/20">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

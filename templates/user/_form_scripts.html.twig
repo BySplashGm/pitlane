@@ -1,0 +1,172 @@
+{# Assigned-servers search-and-add picker for the shared user form (_form.html.twig). Included in the
+   edit page's {% block scripts %}. Progressive enhancement: the hidden rows submit fine without it.
+   Unlike the server form's car picker, a server already on the list is excluded from suggestions, so
+   the same server can never be added twice. #}
+<script>
+    (() => {
+        const container = document.querySelector('[data-assigned-servers]');
+        if (!container) {
+            return;
+        }
+
+        const name = container.dataset.assignedServersName;
+        let options = [];
+        try {
+            options = JSON.parse(container.dataset.assignedServersOptions);
+        } catch (error) {
+            options = [];
+        }
+
+        const search = container.querySelector('[data-assigned-servers-search]');
+        const suggestions = container.querySelector('[data-assigned-servers-suggestions]');
+        const list = container.querySelector('[data-assigned-servers-list]');
+
+        const assignedIds = new Set(
+            Array.from(list.querySelectorAll('[data-assigned-servers-row]'), (row) => row.dataset.assignedServersId),
+        );
+
+        // The server names currently shown as suggestions, and which one is keyboard-highlighted (-1 = none).
+        let matches = [];
+        let activeIndex = -1;
+
+        const removeRow = (button) => {
+            const row = button.closest('[data-assigned-servers-row]');
+            assignedIds.delete(row.dataset.assignedServersId);
+            row.remove();
+        };
+
+        const addServer = (server) => {
+            const id = String(server.id);
+            if (assignedIds.has(id)) {
+                return;
+            }
+            assignedIds.add(id);
+
+            const row = document.createElement('li');
+            row.className = 'flex items-center gap-2';
+            row.setAttribute('data-assigned-servers-row', '');
+            row.dataset.assignedServersId = id;
+
+            const label = document.createElement('span');
+            label.className = 'flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg';
+            label.textContent = server.name;
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = id;
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.setAttribute('data-assigned-servers-remove', '');
+            remove.className = 'rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg';
+            remove.textContent = 'Remove';
+            remove.addEventListener('click', () => removeRow(remove));
+
+            row.append(label, input, remove);
+            list.appendChild(row);
+        };
+
+        const closeSuggestions = () => {
+            suggestions.replaceChildren();
+            suggestions.classList.add('hidden');
+            search.setAttribute('aria-expanded', 'false');
+            search.removeAttribute('aria-activedescendant');
+            matches = [];
+            activeIndex = -1;
+        };
+
+        const highlight = (nextIndex) => {
+            const items = suggestions.children;
+            if (activeIndex >= 0 && items[activeIndex]) {
+                items[activeIndex].setAttribute('aria-selected', 'false');
+                items[activeIndex].classList.remove('bg-surface-hover');
+            }
+
+            activeIndex = nextIndex;
+
+            if (activeIndex >= 0 && items[activeIndex]) {
+                const active = items[activeIndex];
+                active.setAttribute('aria-selected', 'true');
+                active.classList.add('bg-surface-hover');
+                active.scrollIntoView({block: 'nearest'});
+                search.setAttribute('aria-activedescendant', active.id);
+            } else {
+                search.removeAttribute('aria-activedescendant');
+            }
+        };
+
+        const pick = (server) => {
+            addServer(server);
+            search.value = '';
+            closeSuggestions();
+            search.focus();
+        };
+
+        const renderSuggestions = () => {
+            const query = search.value.trim().toLowerCase();
+            suggestions.replaceChildren();
+            activeIndex = -1;
+            search.removeAttribute('aria-activedescendant');
+
+            // Already-assigned servers are excluded here, not just skipped on pick: that is what makes
+            // adding the same server twice impossible rather than merely rejected.
+            const candidates = options.filter((option) => !assignedIds.has(String(option.id)));
+            matches = query === '' ? candidates : candidates.filter((option) => option.name.toLowerCase().includes(query));
+            if (matches.length === 0) {
+                suggestions.classList.add('hidden');
+                search.setAttribute('aria-expanded', 'false');
+                return;
+            }
+
+            matches.forEach((match, matchIndex) => {
+                const option = document.createElement('li');
+                option.id = `assigned-servers-option-${matchIndex}`;
+                option.setAttribute('role', 'option');
+                option.setAttribute('aria-selected', 'false');
+                option.className = 'cursor-pointer px-3 py-2 text-sm text-fg hover:bg-surface-hover';
+                option.textContent = match.name;
+                option.addEventListener('mouseenter', () => highlight(matchIndex));
+                // mousedown (not click) so the pick registers before the search input's blur closes the list.
+                option.addEventListener('mousedown', (event) => {
+                    event.preventDefault();
+                    pick(match);
+                });
+                suggestions.appendChild(option);
+            });
+
+            suggestions.classList.remove('hidden');
+            search.setAttribute('aria-expanded', 'true');
+        };
+
+        search.addEventListener('input', renderSuggestions);
+        search.addEventListener('focus', renderSuggestions);
+        search.addEventListener('blur', () => window.setTimeout(closeSuggestions, 100));
+
+        search.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (matches.length === 0) {
+                    renderSuggestions();
+                } else {
+                    highlight((activeIndex + 1) % matches.length);
+                }
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (matches.length > 0) {
+                    highlight((activeIndex - 1 + matches.length) % matches.length);
+                }
+            } else if (event.key === 'Enter' && activeIndex >= 0) {
+                // Only intercept Enter when a suggestion is highlighted, so the form still submits otherwise.
+                event.preventDefault();
+                pick(matches[activeIndex]);
+            } else if (event.key === 'Escape') {
+                closeSuggestions();
+            }
+        });
+
+        list.querySelectorAll('[data-assigned-servers-remove]').forEach((button) => {
+            button.addEventListener('click', () => removeRow(button));
+        });
+    })();
+</script>
