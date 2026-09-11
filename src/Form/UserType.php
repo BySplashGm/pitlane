@@ -50,12 +50,17 @@ final class UserType extends AbstractType
                 'invalid_message' => 'The password fields must match.',
                 'first_options' => ['label' => false],
                 'second_options' => ['label' => false],
-            ])
-            ->add('role', EnumType::class, [
+            ]);
+
+        // Never offered: Owner is created exclusively by the pitlane:create-owner console command, and
+        // the owner's own role is locked (see UserVoter::EDIT), so the field is dropped entirely rather
+        // than rendered with a choice list that can't represent the current value.
+        if (UserRole::Owner !== $options['target_role']) {
+            $builder->add('role', EnumType::class, [
                 'class' => UserRole::class,
-                // Never Owner: it is created exclusively by the pitlane:create-owner console command.
                 'choices' => [UserRole::Admin, UserRole::Operator],
             ]);
+        }
 
         // The assignment picker only exists on edit, per the edit-page-only requirement. It is rendered
         // by hand in the template as a search-and-add widget (see _form.html.twig), so it stays
@@ -74,8 +79,9 @@ final class UserType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver
-            ->setDefaults(['data_class' => UserFormData::class])
+            ->setDefaults(['data_class' => UserFormData::class, 'target_role' => null])
             ->setRequired('user_id')
-            ->setAllowedTypes('user_id', ['int', 'null']);
+            ->setAllowedTypes('user_id', ['int', 'null'])
+            ->setAllowedTypes('target_role', ['null', UserRole::class]);
     }
 }

@@ -48,9 +48,10 @@ final class UserFormData
 
     /**
      * Never Owner: the owner account is created exclusively by the `pitlane:create-owner` console
-     * command, so promoting or creating one through the UI is not offered.
+     * command, so promoting or creating one through the UI is not offered. {@see validateRole()}
+     * enforces this rather than an {@see Assert\Choice}, since an owner editing their own account must
+     * keep the value the form omits the role field for.
      */
-    #[Assert\Choice(callback: 'roleChoices')]
     public UserRole $role = UserRole::Operator;
 
     /**
@@ -88,12 +89,32 @@ final class UserFormData
     }
 
     /**
-     * Only the owner can promote a user to admin. An admin keeping an already-admin account's role
-     * unchanged is not a promotion, so it is let through.
+     * The owner's own role is immutable, since {@see UserType} omits the field from that form entirely.
+     * For every other account, the role must be one of {@see roleChoices()}, and only the owner can
+     * promote a user to admin — an admin keeping an already-admin account's role unchanged is not a
+     * promotion, so it is let through.
      */
     #[Assert\Callback]
     public function validateRole(ExecutionContextInterface $executionContext): void
     {
+        if (UserRole::Owner === $this->currentRole) {
+            if (UserRole::Owner !== $this->role) {
+                $executionContext->buildViolation('The owner role cannot be changed.')
+                    ->atPath('role')
+                    ->addViolation();
+            }
+
+            return;
+        }
+
+        if (!\in_array($this->role, $this->roleChoices(), true)) {
+            $executionContext->buildViolation('Choose a valid role.')
+                ->atPath('role')
+                ->addViolation();
+
+            return;
+        }
+
         if (UserRole::Admin === $this->role && !$this->actorIsOwner && UserRole::Admin !== $this->currentRole) {
             $executionContext->buildViolation('Only the owner can promote a user to admin.')
                 ->atPath('role')

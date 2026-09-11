@@ -354,6 +354,34 @@ final class UserControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
+    public function test_the_owner_editing_their_own_account_has_no_role_field(): void
+    {
+        $user = $this->persistUser('owner@pitlane.test', UserRole::Owner);
+        $this->kernelBrowser->loginUser($user);
+
+        $crawler = $this->kernelBrowser->request('GET', \sprintf('/users/%d/edit', (int) $user->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('select[name="user[role]"]'));
+    }
+
+    public function test_the_owner_editing_their_own_account_keeps_the_owner_role(): void
+    {
+        $user = $this->persistUser('owner@pitlane.test', UserRole::Owner);
+        $id = (int) $user->getId();
+        $this->kernelBrowser->loginUser($user);
+
+        $this->submitEditForm($id, ['email' => 'renamed-owner@pitlane.test']);
+
+        self::assertResponseRedirects('/users');
+
+        $this->entityManager->clear();
+        $updated = $this->entityManager->getRepository(User::class)->find($id);
+        self::assertInstanceOf(User::class, $updated);
+        self::assertSame('renamed-owner@pitlane.test', $updated->getEmail());
+        self::assertSame(UserRole::Owner, $updated->getRole());
+    }
+
     public function test_admin_cannot_edit_the_owner_account(): void
     {
         $user = $this->persistUser('owner@pitlane.test', UserRole::Owner);

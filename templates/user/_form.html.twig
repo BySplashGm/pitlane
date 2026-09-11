@@ -24,7 +24,11 @@
     {{ ui.field(form.plainPassword.first, editingUser ? 'Reset password' : 'Password', editingUser ? 'Leave blank to keep the current password. At least 8 characters otherwise.' : 'At least 8 characters.') }}
     {{ ui.field(form.plainPassword.second, editingUser ? 'Repeat new password' : 'Repeat password', null) }}
     {{ form_errors(form.plainPassword) }}
-    {{ ui.field(form.role, 'Role', 'The owner account is created separately and is never offered here.') }}
+    {% if form.role is defined %}
+        {{ ui.field(form.role, 'Role', 'The owner account is created separately and is never offered here.') }}
+    {% else %}
+        <p class="text-xs text-muted">The owner role cannot be changed here.</p>
+    {% endif %}
 </fieldset>
 
 {% if form.assignedServers is defined %}

@@ -74,6 +74,20 @@ final class UserTypeTest extends TypeTestCase
         self::assertSame([UserRole::Admin->value, UserRole::Operator->value], $roleValues);
     }
 
+    public function test_the_role_field_is_omitted_when_editing_the_owner(): void
+    {
+        $form = $this->factory->create(UserType::class, null, ['user_id' => null, 'target_role' => UserRole::Owner]);
+
+        self::assertFalse($form->has('role'));
+    }
+
+    public function test_the_role_field_exists_when_editing_a_non_owner(): void
+    {
+        $form = $this->factory->create(UserType::class, null, ['user_id' => null, 'target_role' => UserRole::Admin]);
+
+        self::assertTrue($form->has('role'));
+    }
+
     public function test_submitting_an_owner_role_is_rejected(): void
     {
         $submission = $this->validSubmission();

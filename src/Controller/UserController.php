@@ -77,7 +77,10 @@ final class UserController extends AbstractController
     {
         $userFormData = UserFormData::fromUser($user, $this->isOwner($actor));
 
-        $form = $this->createForm(UserType::class, $userFormData, ['user_id' => $user->getId()]);
+        $form = $this->createForm(UserType::class, $userFormData, [
+            'user_id' => $user->getId(),
+            'target_role' => $user->getRole(),
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {

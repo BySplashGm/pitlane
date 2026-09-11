@@ -169,6 +169,36 @@ final class UserFormDataTest extends TestCase
         self::assertNotContains('role: Only the owner can promote a user to admin.', $this->violations($userFormData));
     }
 
+    public function test_the_owner_keeping_their_own_role_raises_no_violation(): void
+    {
+        $userFormData = $this->editFormData();
+        $userFormData->actorIsOwner = true;
+        $userFormData->currentRole = UserRole::Owner;
+        $userFormData->role = UserRole::Owner;
+
+        self::assertSame([], $this->violations($userFormData));
+    }
+
+    public function test_changing_the_owners_role_is_rejected(): void
+    {
+        $userFormData = $this->editFormData();
+        $userFormData->actorIsOwner = true;
+        $userFormData->currentRole = UserRole::Owner;
+        $userFormData->role = UserRole::Admin;
+
+        self::assertContains('role: The owner role cannot be changed.', $this->violations($userFormData));
+    }
+
+    public function test_assigning_the_owner_role_to_a_non_owner_account_is_rejected(): void
+    {
+        $userFormData = $this->editFormData();
+        $userFormData->actorIsOwner = true;
+        $userFormData->currentRole = UserRole::Operator;
+        $userFormData->role = UserRole::Owner;
+
+        self::assertContains('role: Choose a valid role.', $this->violations($userFormData));
+    }
+
     private function makeServer(): Server
     {
         return new Server(
