@@ -50,6 +50,29 @@ final class UserVoterTest extends TestCase
         yield 'operator cannot edit owner' => [UserRole::Operator, UserRole::Owner, UserVoter::EDIT, VoterInterface::ACCESS_DENIED];
     }
 
+    #[DataProvider('list_and_create_cases')]
+    public function test_vote_on_list_and_create(UserRole $userRole, string $attribute, int $expected): void
+    {
+        $userVoter = new UserVoter();
+        $user = new User('actor@pitlane.test', $userRole);
+        $usernamePasswordToken = new UsernamePasswordToken($user, 'main', $user->getRoles());
+
+        self::assertSame($expected, $userVoter->vote($usernamePasswordToken, null, [$attribute]));
+    }
+
+    /**
+     * @return iterable<string, array{UserRole, string, int}>
+     */
+    public static function list_and_create_cases(): iterable
+    {
+        yield 'owner can list' => [UserRole::Owner, UserVoter::LIST, VoterInterface::ACCESS_GRANTED];
+        yield 'admin can list' => [UserRole::Admin, UserVoter::LIST, VoterInterface::ACCESS_GRANTED];
+        yield 'operator cannot list' => [UserRole::Operator, UserVoter::LIST, VoterInterface::ACCESS_DENIED];
+        yield 'owner can create' => [UserRole::Owner, UserVoter::CREATE, VoterInterface::ACCESS_GRANTED];
+        yield 'admin can create' => [UserRole::Admin, UserVoter::CREATE, VoterInterface::ACCESS_GRANTED];
+        yield 'operator cannot create' => [UserRole::Operator, UserVoter::CREATE, VoterInterface::ACCESS_DENIED];
+    }
+
     public function test_it_abstains_on_unsupported_attribute(): void
     {
         $userVoter = new UserVoter();
@@ -66,6 +89,24 @@ final class UserVoterTest extends TestCase
         $usernamePasswordToken = new UsernamePasswordToken($user, 'main', $user->getRoles());
 
         self::assertSame(VoterInterface::ACCESS_ABSTAIN, $userVoter->vote($usernamePasswordToken, new stdClass(), [UserVoter::EDIT]));
+    }
+
+    public function test_it_abstains_on_edit_without_a_subject(): void
+    {
+        $userVoter = new UserVoter();
+        $user = new User('actor@pitlane.test', UserRole::Owner);
+        $usernamePasswordToken = new UsernamePasswordToken($user, 'main', $user->getRoles());
+
+        self::assertSame(VoterInterface::ACCESS_ABSTAIN, $userVoter->vote($usernamePasswordToken, null, [UserVoter::EDIT]));
+    }
+
+    public function test_it_abstains_on_list_with_a_subject(): void
+    {
+        $userVoter = new UserVoter();
+        $user = new User('actor@pitlane.test', UserRole::Owner);
+        $usernamePasswordToken = new UsernamePasswordToken($user, 'main', $user->getRoles());
+
+        self::assertSame(VoterInterface::ACCESS_ABSTAIN, $userVoter->vote($usernamePasswordToken, $user, [UserVoter::LIST]));
     }
 
     public function test_it_denies_when_actor_is_not_an_app_user(): void
