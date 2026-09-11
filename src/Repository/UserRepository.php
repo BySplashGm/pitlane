@@ -63,9 +63,20 @@ class UserRepository extends ServiceEntityRepository implements UserRepositoryIn
         $this->getEntityManager()->flush();
     }
 
+    /**
+     * @return list<User>
+     */
     #[Override]
     public function findAllOrderedByEmail(): array
     {
-        return $this->findBy([], ['email' => 'ASC']);
+        /** @var list<User> $users */
+        $users = $this->createQueryBuilder('u')
+            ->addSelect('assignedServers')
+            ->leftJoin('u.assignedServers', 'assignedServers')
+            ->orderBy('u.email', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $users;
     }
 }
