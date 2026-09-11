@@ -2,13 +2,15 @@
 #
 # DRAFT — build the Assetto Corsa dedicated server by fetching it with SteamCMD, so the repo and image
 # never ship Kunos/505's proprietary files. NOT yet wired into `castor build`; the working image is
-# still built from ./Dockerfile (bring-your-own-files). Validate this on an amd64 Linux host and settle
-# the two UNVERIFIED notes below before switching the project over to it.
+# still built from ./Dockerfile (bring-your-own-files). See docs/decisions/steamcmd-ac-server-build.md
+# for the validation plan and findings so far — anonymous access to AppID 302550 is confirmed REJECTED
+# ("No subscription"), so a Steam account that owns Assetto Corsa is required; STEAM_USER/STEAM_PASSWORD
+# are not optional. Whether that account gets the native Linux acServer or only acServer.exe is still
+# unconfirmed — settle that before switching the project over to this file.
 #
-# Build (anonymous):    docker build -f ac-server/Dockerfile.steamcmd -t ac-server:latest ac-server
-# Build (Steam account): docker build -f ac-server/Dockerfile.steamcmd \
-#                          --build-arg STEAM_USER=you --build-arg STEAM_PASSWORD=secret \
-#                          -t ac-server:latest ac-server
+# Build (Steam account required): docker build -f ac-server/Dockerfile.steamcmd \
+#                                    --build-arg STEAM_USER=you --build-arg STEAM_PASSWORD=secret \
+#                                    -t ac-server:latest ac-server
 #
 # acServer is a 32-bit x86 Linux binary, so the image is pinned to linux/amd64 (emulated on arm64).
 FROM --platform=linux/amd64 debian:bookworm-slim
@@ -31,9 +33,9 @@ RUN mkdir -p /steamcmd \
 
 WORKDIR /ac-server
 
-# UNVERIFIED #1 — anonymous access. AppID 302550 (Assetto Corsa Dedicated Server) is documented as
-# anonymously downloadable, but some accounts are refused and must log in. Default to anonymous; pass
-# STEAM_USER / STEAM_PASSWORD build args to use an account that owns AC when anonymous is rejected.
+# Anonymous access to AppID 302550 is confirmed rejected ("No subscription"), so pass STEAM_USER /
+# STEAM_PASSWORD build args for an account that owns Assetto Corsa. Never bake real credentials into
+# an image layer or commit them — pass them as build args from a secret store at build time only.
 ARG STEAM_USER=anonymous
 ARG STEAM_PASSWORD=""
 

@@ -61,6 +61,32 @@ before reaching for a separate host, but still not a substitute for the
 real-hardware/CI confirmation below since Rosetta itself is another
 translation layer.
 
+**Confirmed on real amd64 CI (GitHub Actions `ubuntu-latest`, via a
+throwaway `.github/workflows/steamcmd-validate.yml`, commits
+`d258eb5`/`39210b8`/`47a472a` on this branch), 2026-09-11:**
+
+- **Bug found and fixed:** the draft ran `+login` before
+  `+force_install_dir`. SteamCMD requires the reverse order — logging in
+  first produced `Please use force_install_dir before logon!` and
+  `ERROR! Failed to install app '302550' (Missing configuration)`.
+  Fixed in `Dockerfile.steamcmd` (force_install_dir now precedes login).
+- **UNVERIFIED #1 resolved — anonymous access is REJECTED.** With the
+  argument order fixed, anonymous login itself succeeds ("Connecting
+  anonymously to Steam Public... OK", "Waiting for user info... OK"),
+  but app install then fails: `ERROR! Failed to install app '302550'
+  (No subscription)`. AppID 302550 requires a Steam account that owns
+  Assetto Corsa — the account-fallback path in the Dockerfile
+  (`STEAM_USER`/`STEAM_PASSWORD` build args) is **not optional**, it's
+  required for every build.
+- **UNVERIFIED #2 still open** — never reached `app_update` far enough
+  to see which binary lands, since no subscription blocks the download
+  before any files are fetched. Needs a real build with an
+  account-owned login to answer.
+- The workflow now takes `STEAM_USER`/`STEAM_PASSWORD` from GitHub
+  Actions repository secrets (never inline) and only runs on
+  `workflow_dispatch` — someone with a Steam account that owns AC needs
+  to add those secrets and dispatch the workflow to finish Phase 1.
+
 1. Build `ac-server/Dockerfile.steamcmd` anonymously:
    `docker build -f ac-server/Dockerfile.steamcmd -t ac-server:steamcmd-test ac-server`.
 2. Record the outcome:

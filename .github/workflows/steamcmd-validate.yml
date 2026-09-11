@@ -2,8 +2,6 @@ name: SteamCMD build validation (throwaway)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [feat/82-steamcmd-ac-server-build]
 
 jobs:
   validate:
@@ -11,8 +9,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build ac-server image via SteamCMD (anonymous)
-        run: docker build -f ac-server/Dockerfile.steamcmd -t ac-server:steamcmd-validate ac-server
+      - name: Build ac-server image via SteamCMD
+        env:
+          STEAM_USER: ${{ secrets.STEAM_USER }}
+          STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
+        run: |
+          docker build -f ac-server/Dockerfile.steamcmd -t ac-server:steamcmd-validate \
+            --build-arg STEAM_USER="${STEAM_USER:-anonymous}" \
+            --build-arg STEAM_PASSWORD="${STEAM_PASSWORD}" \
+            ac-server
 
       - name: Inspect installed tree
         run: |
