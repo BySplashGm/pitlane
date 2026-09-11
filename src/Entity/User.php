@@ -35,13 +35,13 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    private readonly string $email;
+    private string $email;
 
     #[ORM\Column]
     private string $password = '';
 
     #[ORM\Column(length: 20, enumType: UserRole::class)]
-    private readonly UserRole $userRole;
+    private UserRole $userRole;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private readonly DateTimeImmutable $createdAt;
@@ -71,6 +71,13 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->email;
     }
 
+    public function setEmail(string $email): static
+    {
+        $this->email = $email;
+
+        return $this;
+    }
+
     #[Override]
     public function getUserIdentifier(): string
     {
@@ -94,6 +101,13 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getRole(): UserRole
     {
         return $this->userRole;
+    }
+
+    public function setRole(UserRole $userRole): static
+    {
+        $this->userRole = $userRole;
+
+        return $this;
     }
 
     public function getCreatedAt(): DateTimeImmutable
@@ -128,6 +142,16 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function revokeServer(Server $server): void
     {
         $this->assignedServers->removeElement($server);
+    }
+
+    /**
+     * @param iterable<Server> $servers
+     */
+    public function setAssignedServers(iterable $servers): static
+    {
+        $this->assignedServers = new ArrayCollection(array_values([...$servers]));
+
+        return $this;
     }
 
     public function hasAccessTo(Server $server): bool
