@@ -60,12 +60,18 @@
                                 <a href="{{ path('app_account_edit') }}" class="block px-4 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">
                                     Account settings
                                 </a>
-                                <form method="post" action="{{ path('app_logout') }}">
-                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-                                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-muted hover:bg-surface-hover hover:text-fg">
-                                        Sign out
-                                    </button>
-                                </form>
+                                {% if is_granted('IS_IMPERSONATOR') %}
+                                    <a href="{{ path('app_dashboard_index', { _switch_user: '_exit' }) }}" class="block px-4 py-2 text-sm text-muted hover:bg-surface-hover hover:text-fg">
+                                        Exit impersonation
+                                    </a>
+                                {% else %}
+                                    <form method="post" action="{{ path('app_logout') }}">
+                                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                                        <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-muted hover:bg-surface-hover hover:text-fg">
+                                            Sign out
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </div>
 

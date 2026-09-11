@@ -37,6 +37,11 @@
                             <td class="px-4 py-3 text-fg">{{ user.assignedServers|length }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
+                                    {% if is_granted(constant('App\\Security\\Voter\\UserVoter::IMPERSONATE'), user) %}
+                                        <a href="{{ path('app_dashboard_index', { _switch_user: user.email }) }}" class="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:bg-surface-hover hover:text-fg">
+                                            Impersonate
+                                        </a>
+                                    {% endif %}
                                     {% if is_granted(constant('App\\Security\\Voter\\UserVoter::EDIT'), user) %}
                                         <a href="{{ path('app_user_edit', { id: user.id }) }}" class="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:bg-surface-hover hover:text-fg">
                                             Edit

@@ -48,6 +48,9 @@ final class UserVoterTest extends TestCase
         yield 'admin can edit operator' => [UserRole::Admin, UserRole::Operator, UserVoter::EDIT, VoterInterface::ACCESS_GRANTED];
         yield 'operator cannot edit admin' => [UserRole::Operator, UserRole::Admin, UserVoter::EDIT, VoterInterface::ACCESS_DENIED];
         yield 'operator cannot edit owner' => [UserRole::Operator, UserRole::Owner, UserVoter::EDIT, VoterInterface::ACCESS_DENIED];
+        yield 'owner can impersonate admin' => [UserRole::Owner, UserRole::Admin, UserVoter::IMPERSONATE, VoterInterface::ACCESS_GRANTED];
+        yield 'admin cannot impersonate operator' => [UserRole::Admin, UserRole::Operator, UserVoter::IMPERSONATE, VoterInterface::ACCESS_DENIED];
+        yield 'operator cannot impersonate admin' => [UserRole::Operator, UserRole::Admin, UserVoter::IMPERSONATE, VoterInterface::ACCESS_DENIED];
     }
 
     #[DataProvider('list_and_create_cases')]
