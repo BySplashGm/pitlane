@@ -49,7 +49,7 @@
                     class="absolute z-10 mt-1 hidden max-h-56 w-full overflow-auto rounded-md border border-border bg-surface shadow"></ul>
             </div>
             <ul data-assigned-servers-list class="flex flex-col gap-2">
-                {% for server in user.assignedServers %}
+                {% for server in form.assignedServers.vars.data %}
                     <li class="flex items-center gap-2" data-assigned-servers-row data-assigned-servers-id="{{ server.id }}">
                         <span class="flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg">{{ server.name }}</span>
                         <input type="hidden" name="{{ form.assignedServers.vars.full_name }}" value="{{ server.id }}">
