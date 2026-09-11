@@ -19,8 +19,12 @@ use App\Entity\User;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Enum\UserRole;
+use App\Repository\UserRepositoryInterface;
+use App\Validator\UniqueEmailValidator;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
+use Symfony\Component\PropertyAccess\PropertyAccess;
+use Symfony\Component\Validator\ConstraintValidatorFactory;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -199,6 +203,38 @@ final class UserFormDataTest extends TestCase
         self::assertContains('role: Choose a valid role.', $this->violations($userFormData));
     }
 
+    /**
+     * Proves the {@see \App\Validator\UniqueEmail} attribute is wired up; the exhaustive rule coverage
+     * (blank values, the excluded id) lives in {@see \App\Tests\Validator\UniqueEmailValidatorTest}.
+     */
+    public function test_an_email_already_used_by_another_user_is_rejected(): void
+    {
+        $existingUser = new User('taken@pitlane.test', UserRole::Operator);
+        new ReflectionProperty(User::class, 'id')->setValue($existingUser, 9);
+
+        $userRepository = self::createStub(UserRepositoryInterface::class);
+        $userRepository->method('findOneBy')->willReturn($existingUser);
+
+        $userFormData = $this->createFormData();
+        $userFormData->email = 'taken@pitlane.test';
+
+        self::assertContains('email: This email address is already in use.', $this->violations($userFormData, $userRepository));
+    }
+
+    public function test_keeping_the_current_email_on_edit_raises_no_violation(): void
+    {
+        $existingUser = new User('taken@pitlane.test', UserRole::Operator);
+        new ReflectionProperty(User::class, 'id')->setValue($existingUser, 7);
+
+        $userRepository = self::createStub(UserRepositoryInterface::class);
+        $userRepository->method('findOneBy')->willReturn($existingUser);
+
+        $userFormData = $this->editFormData();
+        $userFormData->email = 'taken@pitlane.test';
+
+        self::assertNotContains('email: This email address is already in use.', $this->violations($userFormData, $userRepository));
+    }
+
     private function makeServer(): Server
     {
         return new Server(
@@ -250,20 +286,25 @@ final class UserFormDataTest extends TestCase
     /**
      * @return list<string> every violation as "propertyPath: message"
      */
-    private function violations(UserFormData $userFormData): array
+    private function violations(UserFormData $userFormData, ?UserRepositoryInterface $userRepository = null): array
     {
         $messages = [];
-        foreach ($this->validator()->validate($userFormData) as $constraintViolationList) {
+        foreach ($this->validator($userRepository)->validate($userFormData) as $constraintViolationList) {
             $messages[] = \sprintf('%s: %s', $constraintViolationList->getPropertyPath(), $constraintViolationList->getMessage());
         }
 
         return $messages;
     }
 
-    private function validator(): ValidatorInterface
+    private function validator(?UserRepositoryInterface $userRepository = null): ValidatorInterface
     {
+        $userRepository ??= self::createStub(UserRepositoryInterface::class);
+
         return Validation::createValidatorBuilder()
             ->enableAttributeMapping()
+            ->setConstraintValidatorFactory(new ConstraintValidatorFactory([
+                UniqueEmailValidator::class => new UniqueEmailValidator($userRepository, PropertyAccess::createPropertyAccessor()),
+            ]))
             ->getValidator();
     }
 }

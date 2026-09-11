@@ -17,6 +17,7 @@ use App\Entity\Server;
 use App\Entity\User;
 use App\Enum\UserRole;
 use App\Validator\StrongPassword;
+use App\Validator\UniqueEmail;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
@@ -27,6 +28,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  * submit would push nulls into typed setters before validation runs. This DTO carries the submitted
  * values, gets validated in place, then builds or applies to the entity.
  */
+#[UniqueEmail]
 final class UserFormData
 {
     /**

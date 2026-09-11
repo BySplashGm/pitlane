@@ -15,6 +15,7 @@ namespace App\Dto;
 
 use App\Entity\User;
 use App\Validator\StrongPassword;
+use App\Validator\UniqueEmail;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -22,8 +23,15 @@ use Symfony\Component\Validator\Constraints as Assert;
  * own email or password. Whether the current password actually matches is checked by the controller,
  * against the password hasher, not here.
  */
+#[UniqueEmail]
 final class AccountFormData
 {
+    /**
+     * The id of the user editing their own account, excluded from the {@see UniqueEmail} check so
+     * keeping the current email does not collide with itself.
+     */
+    public ?int $userId = null;
+
     #[Assert\NotBlank]
     #[Assert\Email]
     public string $email = '';
@@ -44,6 +52,7 @@ final class AccountFormData
     public static function fromUser(User $user): self
     {
         $accountFormData = new self();
+        $accountFormData->userId = $user->getId();
         $accountFormData->email = $user->getEmail();
 
         return $accountFormData;
