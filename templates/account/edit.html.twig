@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% macro field(field, label, help, attrs = {}) %}
+    <div class="flex flex-col gap-1">
+        {{ form_label(field, label, {label_attr: {class: 'text-sm font-medium text-fg'}}) }}
+        {{ form_widget(field, {attr: {class: 'w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted focus:border-brand focus:outline-none'}|merge(attrs)}) }}
+        {% if help %}<p class="text-xs text-muted">{{ help }}</p>{% endif %}
+        {{ form_errors(field) }}
+    </div>
+{% endmacro %}
+
+{% import _self as ui %}
+
+{% block title %}Account settings · Pitlane{% endblock %}
+
+{% block body %}
+    <div class="mx-auto max-w-lg">
+        <div class="mb-6">
+            <h1 class="text-2xl font-semibold tracking-tight text-fg">Account settings</h1>
+            <p class="mt-1 text-sm text-muted">{{ app.user.userIdentifier }}</p>
+        </div>
+
+        {{ form_start(form, {attr: {class: 'flex flex-col gap-6'}}) }}
+            {{ form_errors(form) }}
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Profile</legend>
+                {{ ui.field(form.email, 'Email', null) }}
+            </fieldset>
+
+            <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+                <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Password</legend>
+                {{ ui.field(form.currentPassword, 'Current password', 'Required to confirm any change on this page.') }}
+                {{ ui.field(form.newPassword.first, 'New password', 'Leave blank to keep the current password. At least 8 characters otherwise.') }}
+                {{ ui.field(form.newPassword.second, 'Repeat new password', null) }}
+                {{ form_errors(form.newPassword) }}
+            </fieldset>
+
+            <div class="flex items-center justify-end gap-3">
+                <button type="submit" class="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90">Save changes</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}
