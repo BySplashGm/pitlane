@@ -43,8 +43,8 @@ ARG STEAM_PASSWORD=""
 # login line and run the server under Wine from a different base image. Inspect /ac-server after a build
 # to confirm what actually landed (binary name, case, and platform).
 RUN /steamcmd/steamcmd.sh \
-        +login "${STEAM_USER}" ${STEAM_PASSWORD} \
         +force_install_dir /ac-server \
+        +login "${STEAM_USER}" ${STEAM_PASSWORD} \
         +app_update 302550 validate \
         +quit
 
