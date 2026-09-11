@@ -106,19 +106,11 @@ final class UserFormData
                     ->atPath('role')
                     ->addViolation();
             }
-
-            return;
-        }
-
-        if (!\in_array($this->role, $this->roleChoices(), true)) {
+        } elseif (!\in_array($this->role, $this->roleChoices(), true)) {
             $executionContext->buildViolation('Choose a valid role.')
                 ->atPath('role')
                 ->addViolation();
-
-            return;
-        }
-
-        if (UserRole::Admin === $this->role && !$this->actorIsOwner && UserRole::Admin !== $this->currentRole) {
+        } elseif (UserRole::Admin === $this->role && !$this->actorIsOwner && UserRole::Admin !== $this->currentRole) {
             $executionContext->buildViolation('Only the owner can promote a user to admin.')
                 ->atPath('role')
                 ->addViolation();
