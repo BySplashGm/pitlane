@@ -2,6 +2,8 @@ name: SteamCMD build validation (throwaway)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [feat/82-steamcmd-ac-server-build]
 
 jobs:
   validate:
