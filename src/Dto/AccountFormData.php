@@ -34,6 +34,7 @@ final class AccountFormData
 
     #[Assert\NotBlank]
     #[Assert\Email]
+    #[Assert\Length(max: 180)]
     public string $email = '';
 
     /**

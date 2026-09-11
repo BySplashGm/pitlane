@@ -115,6 +115,14 @@ final class AccountFormDataTest extends TestCase
         self::assertContains('email: This email address is already in use.', $this->violations($accountFormData, $userRepository));
     }
 
+    public function test_an_email_longer_than_180_characters_is_rejected(): void
+    {
+        $accountFormData = $this->validFormData();
+        $accountFormData->email = \sprintf('%s@pitlane.test', str_repeat('a', 181));
+
+        self::assertContains('email: This value is too long. It should have 180 characters or less.', $this->violations($accountFormData));
+    }
+
     public function test_keeping_the_current_email_raises_no_violation(): void
     {
         $existingUser = new User('taken@pitlane.test', UserRole::Operator);
