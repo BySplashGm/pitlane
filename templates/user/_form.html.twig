@@ -21,7 +21,7 @@
 <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
     <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Account</legend>
     {{ ui.field(form.email, 'Email', null) }}
-    {{ ui.field(form.plainPassword.first, editingUser ? 'Reset password' : 'Password', editingUser ? 'Leave blank to keep the current password. At least 8 characters otherwise.' : 'At least 8 characters.') }}
+    {{ ui.field(form.plainPassword.first, editingUser ? 'Reset password' : 'Password', editingUser ? 'Leave blank to keep the current password. At least 12 characters otherwise.' : 'At least 12 characters.') }}
     {{ ui.field(form.plainPassword.second, editingUser ? 'Repeat new password' : 'Repeat password', null) }}
     {{ form_errors(form.plainPassword) }}
     {% if form.role is defined %}

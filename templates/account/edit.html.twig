@@ -31,7 +31,7 @@
             <fieldset class="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
                 <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-muted">Password</legend>
                 {{ ui.field(form.currentPassword, 'Current password', 'Required to confirm any change on this page.') }}
-                {{ ui.field(form.newPassword.first, 'New password', 'Leave blank to keep the current password. At least 8 characters otherwise.') }}
+                {{ ui.field(form.newPassword.first, 'New password', 'Leave blank to keep the current password. At least 12 characters otherwise.') }}
                 {{ ui.field(form.newPassword.second, 'Repeat new password', null) }}
                 {{ form_errors(form.newPassword) }}
             </fieldset>
