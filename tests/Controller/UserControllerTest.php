@@ -18,11 +18,13 @@ use App\Entity\User;
 use App\Enum\DurationUnit;
 use App\Enum\SessionType;
 use App\Enum\UserRole;
+use App\Form\UserType;
 use App\Tests\Support\ResetsDatabase;
 use Doctrine\ORM\EntityManagerInterface;
 use Override;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class UserControllerTest extends WebTestCase
@@ -238,6 +240,39 @@ final class UserControllerTest extends WebTestCase
         self::assertInstanceOf(User::class, $updated);
         self::assertSame('renamed-operator@pitlane.test', $updated->getEmail());
         self::assertCount(1, $updated->getAssignedServers());
+    }
+
+    public function test_an_edit_omitting_assigned_servers_unassigns_them_all(): void
+    {
+        $server = $this->persistServer('Formerly Assigned');
+        $user = $this->persistUser('operator@pitlane.test', UserRole::Operator);
+        $user->assignServer($server);
+
+        $this->entityManager->flush();
+        $id = (int) $user->getId();
+        $this->kernelBrowser->loginUser($this->persistUser('owner@pitlane.test', UserRole::Owner));
+
+        $this->submitEditForm($id, [
+            'email' => 'operator@pitlane.test',
+            'role' => UserRole::Operator->value,
+        ]);
+
+        self::assertResponseRedirects('/users');
+
+        $this->entityManager->clear();
+        $updated = $this->entityManager->getRepository(User::class)->find($id);
+        self::assertInstanceOf(User::class, $updated);
+        self::assertCount(0, $updated->getAssignedServers());
+    }
+
+    public function test_the_edit_forms_assigned_servers_field_is_not_required(): void
+    {
+        $user = $this->persistUser('operator@pitlane.test', UserRole::Operator);
+
+        $formFactory = self::getContainer()->get(FormFactoryInterface::class);
+        $formView = $formFactory->create(UserType::class, null, ['user_id' => (int) $user->getId()])->createView();
+
+        self::assertFalse($formView['assignedServers']->vars['required']);
     }
 
     public function test_owner_can_reset_a_users_password(): void

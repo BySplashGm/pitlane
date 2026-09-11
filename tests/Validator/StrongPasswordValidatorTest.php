@@ -84,6 +84,36 @@ final class StrongPasswordValidatorTest extends ConstraintValidatorTestCase
     }
 
     /**
+     * Length must be measured in characters, not bytes: a multi-byte character keeps the character
+     * count under 12 while pushing the byte count to exactly 12, so a byte-based length check would
+     * wrongly accept it.
+     */
+    public function test_a_password_short_in_characters_but_not_in_bytes_is_rejected(): void
+    {
+        $this->validator->validate('Aa1!Aa1éAa1', new StrongPassword());
+
+        $this->buildViolation('The password must be at least 12 characters long.')
+            ->buildNextViolation('The password can only contain letters, digits and these symbols: {{ symbols }}.')
+            ->setParameter('{{ symbols }}', StrongPassword::ALLOWED_SYMBOLS)
+            ->assertRaised();
+    }
+
+    /**
+     * The reverse boundary: exactly 128 characters but a multi-byte character pushes the byte count
+     * to 129, so a byte-based length check would wrongly reject it as too long.
+     */
+    public function test_a_password_at_the_character_limit_but_over_the_byte_limit_is_accepted(): void
+    {
+        $value = 'Ä'.substr(str_repeat('Aa1!', 32), 1);
+
+        $this->validator->validate($value, new StrongPassword());
+
+        $this->buildViolation('The password can only contain letters, digits and these symbols: {{ symbols }}.')
+            ->setParameter('{{ symbols }}', StrongPassword::ALLOWED_SYMBOLS)
+            ->assertRaised();
+    }
+
+    /**
      * The symbol whitelist is interpolated as a violation parameter rather than baked into the
      * message, so this asserts the raw template plus its substituted value separately.
      */
