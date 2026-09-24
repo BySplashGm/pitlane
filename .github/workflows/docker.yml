@@ -35,7 +35,7 @@ jobs:
           chmod +x ac-server/acServer
 
       - name: Build ac-server image
-        uses: docker/build-push-action@v7.3.0
+        uses: docker/build-push-action@v7.4.0
         with:
           context: ac-server
           push: false
