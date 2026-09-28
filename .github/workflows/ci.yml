@@ -30,7 +30,7 @@ jobs:
         uses: docker/setup-buildx-action@v4.3.0
 
       - name: Build Docker image and push to GHA cache
-        uses: docker/bake-action@v7.3.0
+        uses: docker/bake-action@v7.4.0
         with:
           provenance: false
           pull: true
@@ -53,7 +53,7 @@ jobs:
         uses: docker/setup-buildx-action@v4.3.0
 
       - name: Rebuild Docker image from GHA cache
-        uses: docker/bake-action@v7.3.0
+        uses: docker/bake-action@v7.4.0
         with:
           provenance: false
           load: true
@@ -96,7 +96,7 @@ jobs:
         uses: docker/setup-buildx-action@v4.3.0
 
       - name: Rebuild Docker image from GHA cache
-        uses: docker/bake-action@v7.3.0
+        uses: docker/bake-action@v7.4.0
         with:
           provenance: false
           load: true
