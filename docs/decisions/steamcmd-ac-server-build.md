@@ -1,6 +1,6 @@
 # Legal ac-server image build via SteamCMD
 
-- Status: Proposed
+- Status: Accepted (Phases 1–3 done)
 - Date: 2026-09-11
 - Issue: [#82](https://github.com/BySplashGm/pitlane/issues/82)
 - Depends on: [#81](https://github.com/BySplashGm/pitlane/issues/81) (draft `ac-server/Dockerfile.steamcmd`)
@@ -82,55 +82,148 @@ throwaway `.github/workflows/steamcmd-validate.yml`, commits
   to see which binary lands, since no subscription blocks the download
   before any files are fetched. Needs a real build with an
   account-owned login to answer.
-- The workflow now takes `STEAM_USER`/`STEAM_PASSWORD` from GitHub
-  Actions repository secrets (never inline) and only runs on
-  `workflow_dispatch` — someone with a Steam account that owns AC needs
-  to add those secrets and dispatch the workflow to finish Phase 1.
+- **Switched validation channel from CI to local, 2026-09-28.** Rather
+  than putting a personal Steam account's password into GitHub Actions
+  secrets, attempted this step on a local machine with Rosetta-based
+  amd64 emulation enabled (Docker Desktop → Settings → General → "Use
+  Rosetta for x86/amd64 emulation"), on the theory it might avoid the
+  QEMU CPU-frequency abort seen earlier on this same arm64 host. The
+  throwaway GitHub Actions workflow used for the anonymous-access test
+  has been removed; it did its job (found the argument-order bug,
+  confirmed anonymous access is rejected) and isn't needed for the
+  account-owned test.
+- **Rosetta doesn't fix the abort, and the next layer down is a real
+  segfault, not a config problem.** With Rosetta emulation confirmed
+  enabled in Docker Desktop, a login attempt still hit `Unable to
+  determine CPU Frequency. Try defining CPU_MHZ. / Exiting on
+  SPEW_ABORT`. `/proc/cpuinfo` inside the emulated container does
+  contain a `cpu MHz` field (checked directly), so this isn't the usual
+  "field missing" cause — steamclient does its own runtime frequency
+  calibration (rdtsc-based) separately from reading that file, and that
+  calibration fails under this emulation. The error message's own
+  suggestion — setting the `CPU_MHZ` env var — does get past this
+  specific abort (`docker run -e CPU_MHZ=2500 ...`). But immediately
+  after, loading `libsteam_api` **segfaults** (`Segmentation fault`,
+  exit 139), which is exactly the failure mode the issue already named
+  ("SteamCMD is 32-bit x86; segfaults under Apple-Silicon emulation").
+  That's a genuine binary-compatibility crash in translated 32-bit x86
+  code, not something a further env var or setting is likely to route
+  around. This settles it: this Mac cannot run the 32-bit x86 SteamCMD
+  binary under Docker Desktop, in either its default QEMU mode or with
+  Rosetta enabled. Finishing Phase 1 (which binary AppID 302550
+  delivers to an owning account) needs genuine amd64 hardware — a real
+  Linux box, a cloud VM the account owner controls directly, or CI
+  (accepting the credentials-in-CI tradeoff this switch was trying to
+  avoid).
+- **Also found:** passing `STEAM_PASSWORD` via `--build-arg` is unsafe
+  beyond "don't commit it" — Dockerfile `ARG` substitution splices the
+  raw value as literal text into the `RUN` instruction before `/bin/sh`
+  parses it, so shell-special characters in the password can break or
+  hijack the command. Fixed in `Dockerfile.steamcmd` by reading
+  credentials from `--mount=type=secret` files instead (see the file
+  for the exact mechanism) — keep that fix regardless of which host
+  ends up running Phase 1.
+- **Also found:** `docker build`'s log doesn't reliably show SteamCMD's
+  own output (steamcmd writes progress with `\r`, not `\n`; BuildKit's
+  line-buffered log can drop everything written before a process exits
+  quickly), even with `--progress=plain`. For any future interactive
+  debugging of a steamcmd login/Guard-code flow, use `docker run -it`
+  into a plain container and run `steamcmd.sh` directly rather than
+  through `docker build`.
+- **Phase 1 RESOLVED, 2026-09-28**, via a side channel that needed
+  neither Docker nor Linux emulation: **macOS-native SteamCMD**
+  (`brew install --cask steamcmd`) can download files for any platform
+  without running them, so it was used purely to inspect what AppID
+  302550 delivers — no need to execute the downloaded binary on this
+  Mac at all.
+  - `@sSteamCmdForcePlatformType linux` was rejected outright
+    (`ERROR! Failed to install app '302550' (Invalid platform)`) — this
+    looks like a macOS-hosted-steamcmd-specific restriction on forcing
+    a foreign platform, not evidence the app lacks a Linux depot (the
+    real amd64 CI run earlier used no override at all, on a genuine
+    Linux host, and got past this stage cleanly to the "No subscription"
+    error — no "Invalid platform" there).
+  - `@sSteamCmdForcePlatformType windows` succeeded, and the downloaded
+    tree contained **both** `acServer.exe` (confirmed `PE32 executable
+    ... Intel 80386, for MS Windows`) **and** a plain `acServer`
+    (confirmed `ELF 32-bit LSB executable, Intel 80386, ... statically
+    linked`, built with Go). The depot bundles both platforms' binaries
+    together rather than gating them behind the platform flag.
+  - **Conclusion: no platform override is needed in
+    `Dockerfile.steamcmd` at all.** It runs on a genuine Linux host
+    (the container itself), which auto-selects the matching platform by
+    default — exactly the path the earlier real-CI run already
+    exercised successfully up to the subscription check. Once that CI
+    run is repeated with an owning account's credentials, it should
+    receive the same bundle, including the Linux `acServer` this
+    project's `entrypoint.sh` already expects unchanged.
+  - Being a statically-linked Go binary also means the Dockerfile's
+    `lib32gcc-s1`/`lib32stdc++6` runtime packages, needed for the
+    *old* handwritten `acServer` this repo previously used, may be
+    unnecessary for this one — worth confirming when a real build
+    finally runs it, but not blocking.
+  - The downloaded tree also carries Windows-only files
+    (`acServer.exe`, `acServerManager.exe`, `.pdb`, `.bat`) alongside
+    the Linux ones — Phase 2 should prune those from the final image
+    rather than ship dead weight.
 
-1. Build `ac-server/Dockerfile.steamcmd` anonymously:
-   `docker build -f ac-server/Dockerfile.steamcmd -t ac-server:steamcmd-test ac-server`.
-2. Record the outcome:
-   - Anonymous login succeeds → note it, drop the `STEAM_USER`/
-     `STEAM_PASSWORD` build-args section down to a documented fallback
-     only.
-   - Anonymous login is refused → keep the build-args, document in the
-     Dockerfile header and in `README`/`AGENTS.md` that a Steam account
-     owning AC is required, and how to pass it (`--build-arg`, never a
-     committed secret).
-3. Inspect the installed tree (`docker run --rm --entrypoint sh
-   ac-server:steamcmd-test -c 'ls -la /ac-server'`):
-   - Native `acServer` present → proceed to Phase 2 as-is.
-   - Only `acServer.exe` → this is a fork decision, see
-     "Contingency: Windows-only binary" below; **stop and re-scope**
-     before Phase 2, since it changes the base image and entrypoint.
+1. With an account that owns Assetto Corsa, build
+   `ac-server/Dockerfile.steamcmd` locally, passing credentials as
+   **BuildKit secrets**, not `--build-arg`:
+   ```
+   read -s STEAM_USER; echo
+   read -s STEAM_PASSWORD; echo
+   export STEAM_USER STEAM_PASSWORD
+   docker build -f ac-server/Dockerfile.steamcmd \
+     --secret id=steam_user,env=STEAM_USER --secret id=steam_password,env=STEAM_PASSWORD \
+     -t ac-server:steamcmd-test ac-server
+   ```
+   **Do not use `--build-arg` for the password.** A first attempt with
+   `--build-arg STEAM_PASSWORD=...` broke the build for a password
+   containing shell-special characters: Dockerfile `ARG` substitution
+   splices the raw value as literal text into the `RUN` instruction's
+   shell command *before* `/bin/sh` runs it, so characters like `` ` ``,
+   `$`, or `"` in the password get reinterpreted as shell syntax rather
+   than passed through as data — a shell-injection-shaped bug, not just
+   a cosmetic quoting issue. `Dockerfile.steamcmd` now reads credentials
+   from `--mount=type=secret` files instead, which never touch
+   Dockerfile-processed shell text.
+2. ~~Record the outcome~~ **Done — anonymous login is refused** (see
+   findings above). Keep the secret mounts; the Dockerfile header and
+   `AGENTS.md` should say a Steam account owning AC is required, and
+   how to pass it (`--secret`, never a committed value).
+3. ~~Inspect the installed tree~~ **Done — native `acServer` (ELF
+   32-bit) is present**, confirmed via the macOS-native-SteamCMD
+   side-channel test above. Proceed to Phase 2 as planned; the
+   Windows-only-binary contingency below does not apply.
 
-### Phase 2 — Wire into the project (only after Phase 1 confirms a native Linux binary)
+### Phase 2 — Wire into the project — **done, 2026-09-28**
 
-4. Replace `ac-server/Dockerfile` with the validated contents of
-   `Dockerfile.steamcmd` (or repoint the build to the steamcmd file and
-   delete the old one — pick one, don't keep two Dockerfiles alive).
-5. Update `ac-server/entrypoint.sh` if SteamCMD's install lands the
-   binary under a different name/case/path than `./acServer`.
-6. In `castor.php`'s `build()` (currently `castor.php:36-51`):
-   - Drop the `is_file('ac-server/acServer')` guard and its warning
-     branch.
-   - Always run `docker build --pull -t ac-server:latest ac-server`.
-   - If an account fallback is kept from step 2, thread `STEAM_USER`/
-     `STEAM_PASSWORD` through as Castor build args sourced from the
-     environment, never hardcoded.
-7. Remove the stale `Dockerfile.steamcmd` draft comments (the "DRAFT",
-   "UNVERIFIED #1/#2" header) since the file is now the real thing.
-8. Update `AGENTS.md` / any onboarding doc that still describes the
-   manual file-drop step.
+4. ~~Replace `ac-server/Dockerfile`~~ Done: `git mv
+   Dockerfile.steamcmd Dockerfile`, old bring-your-own-files Dockerfile
+   removed. Also added a `RUN rm -f acServer.exe acServer.bat
+   acServerManager.exe acServerManager.pdb` step to drop the
+   Windows-only files the depot bundles alongside the Linux binary.
+5. ~~Update `ac-server/entrypoint.sh`~~ Not needed — `acServer` lands at
+   the same path/name/case the existing `entrypoint.sh` already expects.
+6. ~~In `castor.php`'s `build()`~~ Done: dropped the
+   `is_file('ac-server/acServer')` guard; `build()` now always builds
+   `ac-server:latest`, adding `--secret id=steam_user,env=STEAM_USER`
+   and `--secret id=steam_password,env=STEAM_PASSWORD` when those env
+   vars are set (never `--build-arg`, never hardcoded).
+7. ~~Remove the stale `Dockerfile.steamcmd` draft comments~~ Done —
+   header now describes the shipped mechanism, not a draft.
+8. ~~Update `AGENTS.md`~~ Nothing there described the manual file-drop
+   step, so no change needed.
 
 ### Phase 3 — Content directory (tracks/cars)
 
-9. Base game content (tracks, cars) still requires ownership separately
-   from the dedicated-server binary. Decide: mount `AC_CONTENT_DIR` at
-   container runtime (current pattern per `castor content:seed`,
-   `castor.php:225`) rather than baking content into the image. This
-   keeps the image itself legally distributable even if a user's
-   mounted content is not. Document this split clearly in the Dockerfile
+9. ~~Base game content (tracks, cars) still requires ownership
+   separately from the dedicated-server binary~~ Done — content mounts
+   from `AC_CONTENT_DIR` at container runtime (existing pattern per
+   `castor content:seed`, `castor.php:225`) rather than baking into the
+   image, keeping the image itself legally distributable even if a
+   user's mounted content is not. Split documented in the Dockerfile
    header and `AGENTS.md`.
 
 ### Contingency: Windows-only binary

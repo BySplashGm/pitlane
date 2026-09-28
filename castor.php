@@ -39,15 +39,21 @@ function build(): void
     run('docker compose build --pull --no-cache');
 
     // The managed game-server image (ac-server/Dockerfile) is not a compose service, so build it
-    // separately; its tag must match DockerService::IMAGE ('ac-server:latest'). The Dockerfile COPYs
-    // the proprietary Assetto Corsa dedicated-server files (acServer, system/, content/), which are
-    // gitignored and supplied by hand. Skip with a notice when they are absent so the rest of the
-    // bootstrap still works — starting a server needs this image.
-    if (is_file('ac-server/acServer')) {
-        run('docker build --pull -t ac-server:latest ac-server');
-    } else {
-        io()->warning('Skipping ac-server:latest build: place the Assetto Corsa dedicated-server files (acServer, system/, content/) in ac-server/, then run "castor build" again. Starting a server needs this image.');
+    // separately; its tag must match DockerService::IMAGE ('ac-server:latest'). It fetches the
+    // Assetto Corsa dedicated-server files via SteamCMD at build time rather than shipping them, but
+    // AppID 302550 rejects anonymous access — export STEAM_USER/STEAM_PASSWORD (an account that owns
+    // Assetto Corsa) before running this task, or the build will fail to log in.
+    $secrets = [];
+    if (false !== getenv('STEAM_USER')) {
+        $secrets[] = '--secret';
+        $secrets[] = 'id=steam_user,env=STEAM_USER';
     }
+    if (false !== getenv('STEAM_PASSWORD')) {
+        $secrets[] = '--secret';
+        $secrets[] = 'id=steam_password,env=STEAM_PASSWORD';
+    }
+
+    run(['docker', 'build', '--pull', ...$secrets, '-t', 'ac-server:latest', 'ac-server']);
 }
 
 #[AsTask(name: 'up', description: 'Start the dev services (app, database, mailer)')]

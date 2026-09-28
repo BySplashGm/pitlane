@@ -6,6 +6,8 @@ Guidance for working in this repository. Path-specific conventions live under `.
 
 Pitlane is a Symfony web application for running and administering **Assetto Corsa dedicated servers**. Each game server is a Docker container built from `ac-server/Dockerfile`; Pitlane drives them through the Docker daemon (mounted `/var/run/docker.sock`) and presents a Twig UI to create, start, stop, and configure them.
 
+`ac-server/Dockerfile` fetches only the dedicated-server binary (via SteamCMD, see `docs/decisions/steamcmd-ac-server-build.md`) — it never bakes in base game content. Tracks/cars/weather require Assetto Corsa ownership separately from the server binary and are supplied at container runtime from an operator-managed host directory (`AC_CONTENT_DIR`) instead; see `castor content:seed` below and `AcContentServiceInterface`.
+
 Dependency versions are whatever `composer.json` declares — read it there rather than trusting numbers copied into docs.
 
 ## Stack
