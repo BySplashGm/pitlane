@@ -7043,16 +7043,16 @@
         },
         {
             "name": "symfony/ux-autocomplete",
-            "version": "v3.4.0",
+            "version": "v3.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/ux-autocomplete.git",
-                "reference": "763ca4d68eb04948098c33b15af84eb5dc5137df"
+                "reference": "e9ff3cf83b1b2e370199248d697bb99dd06f52b9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/ux-autocomplete/zipball/763ca4d68eb04948098c33b15af84eb5dc5137df",
-                "reference": "763ca4d68eb04948098c33b15af84eb5dc5137df",
+                "url": "https://api.github.com/repos/symfony/ux-autocomplete/zipball/e9ff3cf83b1b2e370199248d697bb99dd06f52b9",
+                "reference": "e9ff3cf83b1b2e370199248d697bb99dd06f52b9",
                 "shasum": ""
             },
             "require": {
@@ -7061,7 +7061,8 @@
                 "symfony/deprecation-contracts": "^2.5|^3",
                 "symfony/http-foundation": "^7.4|^8.0",
                 "symfony/http-kernel": "^7.4|^8.0",
-                "symfony/property-access": "^7.4|^8.0"
+                "symfony/property-access": "^7.4|^8.0",
+                "symfony/translation-contracts": "^3.0"
             },
             "conflict": {
                 "doctrine/orm": "2.9.0 || 2.9.1"
@@ -7073,15 +7074,17 @@
                 "fakerphp/faker": "^1.22",
                 "mtdowling/jmespath.php": "^2.6",
                 "phpunit/phpunit": "^11.1|^12.0",
+                "symfony/asset-mapper": "^7.4|^8.0",
                 "symfony/form": "^7.2|^8.0",
                 "symfony/framework-bundle": "^7.4|^8.0",
                 "symfony/maker-bundle": "^1.40",
                 "symfony/options-resolver": "^7.4|^8.0",
                 "symfony/process": "^7.4|^8.0",
                 "symfony/security-bundle": "^7.4|^8.0",
+                "symfony/translation": "^7.4|^8.0",
                 "symfony/twig-bundle": "^7.4|^8.0",
                 "symfony/uid": "^7.4|^8.0",
-                "twig/twig": "^2.14.7|^3.0.4",
+                "twig/twig": "^2.14.7|^3.0.4|^4.0",
                 "zenstruck/browser": "^1.9",
                 "zenstruck/foundry": "^2.7"
             },
@@ -7113,7 +7116,7 @@
                 "symfony-ux"
             ],
             "support": {
-                "source": "https://github.com/symfony/ux-autocomplete/tree/v3.4.0"
+                "source": "https://github.com/symfony/ux-autocomplete/tree/v3.5.1"
             },
             "funding": [
                 {
@@ -7133,7 +7136,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-27T05:38:40+00:00"
+            "time": "2026-09-19T11:40:16+00:00"
         },
         {
             "name": "symfony/ux-turbo",
