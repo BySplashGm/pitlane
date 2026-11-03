@@ -1,6 +1,6 @@
 # CSS framework
 
-- Status: Accepted
+- Status: Accepted (amended 2026-11-03, see "Update: new interface")
 - Date: 2026-08-01
 - Issue: [#12](https://github.com/BySplashGm/pitlane/issues/12)
 
@@ -60,6 +60,36 @@ Negative / trade-offs:
 - A production asset build must run `tailwind:build --minify` before
   `asset-map:compile`. No such prod pipeline exists yet, so this is a
   follow-up once one is added.
+
+## Update: new interface (2026-11-03)
+
+The new interface ("Timing Tower") was designed and prototyped outside
+this repository (pitlane-ui: `DESIGN.md`, a static prototype written in
+plain CSS with `tokens.css` and `components.css`). The question was
+whether to port that CSS as is and drop Tailwind, or keep Tailwind.
+
+**Decision: keep Tailwind.** This record stays valid.
+
+- The design tokens (colours, Saira type scale, spacing, square corners,
+  motion durations and easings, timing-tower grid) move into Tailwind's
+  `@theme` in `assets/styles/app.css`. They are the single source of
+  truth.
+- Components are rewritten with utilities in the Twig templates.
+  `@apply` is used only for components repeated across many templates
+  (buttons, inputs, tags, table rows). The prototype CSS is a reference,
+  not copied.
+- The design has a single dark theme. The class-based `dark` variant and
+  the `class="dark"` on `<html>` can go, unless a light theme is planned.
+- Fonts are self-hosted (no Google Fonts) and icons come from a static
+  SVG sprite.
+
+Consequences: no second styling system to maintain and no Node toolchain,
+but every prototype component has to be translated into utilities; the
+token names must match `DESIGN.md` so design and code stay comparable.
+
+Rejected: porting `tokens.css` and `components.css` without Tailwind
+(no translation work, but it reverses this record and the existing
+templates), and running both side by side (two systems to keep in sync).
 
 ## Alternatives considered
 
