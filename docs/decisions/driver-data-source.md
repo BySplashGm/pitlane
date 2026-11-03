@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-03
-- Issue: to be filed ("Drivers on track"); [#27](https://github.com/BySplashGm/pitlane/issues/27) (connection history)
+- Issue: [#205](https://github.com/BySplashGm/pitlane/issues/205); [#27](https://github.com/BySplashGm/pitlane/issues/27) (connection history)
 
 ## Context
 

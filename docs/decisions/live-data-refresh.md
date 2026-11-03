@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-03
-- Issue: to be filed ("Live data endpoint (JSON polling)")
+- Issue: [#203](https://github.com/BySplashGm/pitlane/issues/203)
 
 ## Context
 

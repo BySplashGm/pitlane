@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-03
-- Issue: to be filed ("External port probe service"); related: network diagnostic, setup wizard health checks
+- Issue: [#195](https://github.com/BySplashGm/pitlane/issues/195); related: [#196](https://github.com/BySplashGm/pitlane/issues/196) (network diagnostic), [#194](https://github.com/BySplashGm/pitlane/issues/194) (health checks)
 
 ## Context
 
