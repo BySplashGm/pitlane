@@ -57,7 +57,7 @@ final class AcConfigServiceTest extends TestCase
         $server = $this->createServer(withSlug: false);
 
         $this->expectException(MissingContainerSlugException::class);
-        $this->expectExceptionMessage('Server container slug is missing');
+        $this->expectExceptionMessageIsOrContains('Server container slug is missing');
 
         $this->acConfigService->getConfigDir($server);
     }
@@ -71,7 +71,7 @@ final class AcConfigServiceTest extends TestCase
         $server->setCars([]);
 
         $this->expectException(EmptyCarListException::class);
-        $this->expectExceptionMessage('at least one allowed car');
+        $this->expectExceptionMessageIsOrContains('at least one allowed car');
 
         $this->acConfigService->writeConfig($server);
     }

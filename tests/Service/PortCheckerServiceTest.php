@@ -62,7 +62,7 @@ final class PortCheckerServiceTest extends TestCase
     public function test_check_port_rejects_an_unsupported_protocol(string $protocol): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage(\sprintf('Unsupported protocol "%s"; only "tcp" is checkable.', $protocol));
+        $this->expectExceptionMessageIsOrContains(\sprintf('Unsupported protocol "%s"; only "tcp" is checkable.', $protocol));
 
         $this->makeService()->checkPort('127.0.0.1', 9600, $protocol);
     }

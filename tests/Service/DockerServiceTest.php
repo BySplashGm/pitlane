@@ -101,7 +101,7 @@ final class DockerServiceTest extends TestCase
         $dockerService = $this->makeService(new MockResponse('boom', ['http_code' => 500]));
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Docker API GET /containers/spa-endurance/json failed (HTTP 500): boom');
+        $this->expectExceptionMessageIsOrContains('Docker API GET /containers/spa-endurance/json failed (HTTP 500): boom');
 
         $dockerService->getContainerStatus($this->createServer());
     }
@@ -118,7 +118,7 @@ final class DockerServiceTest extends TestCase
         $dockerService = $this->makeService(new MockResponse('moved', ['http_code' => 300]));
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('failed (HTTP 300)');
+        $this->expectExceptionMessageIsOrContains('failed (HTTP 300)');
 
         $dockerService->getContainerStatus($this->createServer());
     }

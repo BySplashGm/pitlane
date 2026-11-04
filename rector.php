@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 use Rector\Caching\ValueObject\Storage\FileCacheStorage;
 use Rector\Config\RectorConfig;
-use Rector\Php83\Rector\ClassMethod\AddOverrideAttributeToOverriddenMethodsRector;
 use Rector\PHPUnit\CodeQuality\Rector\Class_\PreferPHPUnitThisCallRector;
 use Rector\PHPUnit\CodeQuality\Rector\ClassMethod\NoSetupWithParentCallOverrideRector;
 
@@ -36,16 +35,12 @@ return RectorConfig::configure()
         codingStyle: true,
         typeDeclarations: true,
         privatization: true,
-        naming: true,
         instanceOf: true,
         earlyReturn: true,
         phpunitCodeQuality: true,
         doctrineCodeQuality: true,
     )
     ->withComposerBased(twig: true, doctrine: true, phpunit: true)
-    ->withRules([
-        AddOverrideAttributeToOverriddenMethodsRector::class,
-    ])
     ->withSkip([
         // Keep static PHPUnit assertions (self::assert*) so PHPStan strict-rules
         // (staticMethod.dynamicCall) and php-cs-fixer agree on one call style.
