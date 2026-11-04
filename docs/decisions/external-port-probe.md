@@ -2,7 +2,11 @@
 
 - Status: Accepted
 - Date: 2026-11-03
-- Issue: [#195](https://github.com/pitlane-studios/pitlane/issues/195); related: [#196](https://github.com/pitlane-studios/pitlane/issues/196) (network diagnostic), [#194](https://github.com/pitlane-studios/pitlane/issues/194) (health checks)
+- Issue: [#195](https://github.com/pitlane-studios/pitlane/issues/195); related:
+  [#196](https://github.com/pitlane-studios/pitlane/issues/196)
+  (network diagnostic),
+  [#194](https://github.com/pitlane-studios/pitlane/issues/194)
+  (health checks)
 
 ## Context
 

@@ -6,7 +6,7 @@
 
 ## Context
 
-#23 planned a per-server mode `none` / `blacklist` / `whitelist` and a
+Issue #23 planned a per-server mode `none` / `blacklist` / `whitelist` and a
 `ServerGuid` list of Steam GUIDs. The official `acServer` reads a
 `blacklist.txt` of banned GUIDs. It has no whitelist file: allowing only
 listed players needs a locked `entry_list.ini` (`LOCKED_ENTRY_LIST=1`)
