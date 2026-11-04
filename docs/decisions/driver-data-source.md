@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-03
-- Issue: [#205](https://github.com/BySplashGm/pitlane/issues/205); [#27](https://github.com/BySplashGm/pitlane/issues/27) (connection history)
+- Issue: [#205](https://github.com/pitlane-studios/pitlane/issues/205); [#27](https://github.com/pitlane-studios/pitlane/issues/27) (connection history)
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-03
-- Issue: [#207](https://github.com/BySplashGm/pitlane/issues/207); [#26](https://github.com/BySplashGm/pitlane/issues/26)
+- Issue: [#207](https://github.com/pitlane-studios/pitlane/issues/207); [#26](https://github.com/pitlane-studios/pitlane/issues/26)
 
 ## Context
 

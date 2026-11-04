@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-11-03
-- Issue: [#187](https://github.com/BySplashGm/pitlane/issues/187); [#22](https://github.com/BySplashGm/pitlane/issues/22), [#27](https://github.com/BySplashGm/pitlane/issues/27), [#28](https://github.com/BySplashGm/pitlane/issues/28)
+- Issue: [#187](https://github.com/pitlane-studios/pitlane/issues/187); [#22](https://github.com/pitlane-studios/pitlane/issues/22), [#27](https://github.com/pitlane-studios/pitlane/issues/27), [#28](https://github.com/pitlane-studios/pitlane/issues/28)
 
 ## Context
 

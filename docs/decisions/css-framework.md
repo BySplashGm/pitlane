@@ -2,7 +2,7 @@
 
 - Status: Accepted (amended 2026-11-03, see "Update: new interface")
 - Date: 2026-08-01
-- Issue: [#12](https://github.com/BySplashGm/pitlane/issues/12)
+- Issue: [#12](https://github.com/pitlane-studios/pitlane/issues/12)
 
 ## Context
 
