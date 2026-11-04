@@ -3,7 +3,7 @@
 Run several Assetto Corsa dedicated servers from one dashboard: one Docker
 container per server, configured and monitored from the browser.
 
-[![CI](https://github.com/BySplashGm/pitlane/actions/workflows/ci.yml/badge.svg)](https://github.com/BySplashGm/pitlane/actions/workflows/ci.yml)
+[![CI](https://github.com/pitlane-studios/pitlane/actions/workflows/ci.yml/badge.svg)](https://github.com/pitlane-studios/pitlane/actions/workflows/ci.yml)
 [![License: AGPL v3+](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
 ![PHP 8.4+](https://img.shields.io/badge/php-%E2%89%A58.4-777bb4)
 ![Symfony 8](https://img.shields.io/badge/symfony-8-000000)
@@ -70,9 +70,9 @@ built from files you supply: place `acServer`, `system/` and `content/` in
 game-server image, and starting a server will not work.
 
 This step goes away with
-[#82](https://github.com/BySplashGm/pitlane/issues/82): the image will be built
-with SteamCMD from a Steam account that owns Assetto Corsa. A draft lives in
-`ac-server/Dockerfile.steamcmd`; it is not wired in yet.
+[#82](https://github.com/pitlane-studios/pitlane/issues/82): the image will be
+built with SteamCMD from a Steam account that owns Assetto Corsa. A draft lives
+in `ac-server/Dockerfile.steamcmd`; it is not wired in yet.
 
 ## Getting started
 
@@ -88,7 +88,7 @@ with SteamCMD from a Steam account that owns Assetto Corsa. A draft lives in
 ### Install
 
 ```bash
-git clone https://github.com/BySplashGm/pitlane.git
+git clone https://github.com/pitlane-studios/pitlane.git
 cd pitlane
 ```
 
@@ -121,8 +121,8 @@ Without the fixtures, create the first account yourself:
 docker compose exec app bin/console pitlane:create-owner
 ```
 
-The [one-command installer](https://github.com/BySplashGm/pitlane/issues/191)
-and [setup wizard](https://github.com/BySplashGm/pitlane/issues/192) will
+The [one-command installer](https://github.com/pitlane-studios/pitlane/issues/191)
+and [setup wizard](https://github.com/pitlane-studios/pitlane/issues/192) will
 replace these steps.
 
 ### Game content
@@ -164,7 +164,7 @@ Players can only join if these ports are reachable from the internet:
   running Pitlane.
 
 A step-by-step network diagnostic is planned in
-[#196](https://github.com/BySplashGm/pitlane/issues/196).
+[#196](https://github.com/pitlane-studios/pitlane/issues/196).
 
 ### Everyday tasks
 
@@ -174,15 +174,15 @@ A step-by-step network diagnostic is planned in
 ## Roadmap
 
 Everything below is planned, not built. Progress is tracked in [GitHub
-milestones](https://github.com/BySplashGm/pitlane/milestones).
+milestones](https://github.com/pitlane-studios/pitlane/milestones).
 
 - **v0.1 MVP** (20 closed, 2 open): the current feature set. Remaining work is a
   legal SteamCMD-based server image build and installation docs.
 - **Onboarding and new interface** (planned next): a production image and
-  [one-command installer](https://github.com/BySplashGm/pitlane/issues/191), a
-  [guided first-run setup](https://github.com/BySplashGm/pitlane/issues/192),
+  [one-command installer](https://github.com/pitlane-studios/pitlane/issues/191),
+  a [guided first-run setup](https://github.com/pitlane-studios/pitlane/issues/192),
   English and French UI, and a [redesigned
-  interface](https://github.com/BySplashGm/pitlane/issues/216).
+  interface](https://github.com/pitlane-studios/pitlane/issues/216).
 - **v0.2 Advanced management**: multiple sessions per server, activity journal,
   Sol weather presets, content upload, GUID blacklist, scheduled restarts,
   server cloning, update check, container memory limits.
@@ -192,8 +192,8 @@ milestones](https://github.com/BySplashGm/pitlane/milestones).
 ## Contributing
 
 Issues and pull requests are welcome. Look for
-[`good first issue`](https://github.com/BySplashGm/pitlane/labels/good%20first%20issue)
-and [`help wanted`](https://github.com/BySplashGm/pitlane/labels/help%20wanted).
+[`good first issue`](https://github.com/pitlane-studios/pitlane/labels/good%20first%20issue)
+and [`help wanted`](https://github.com/pitlane-studios/pitlane/labels/help%20wanted).
 Open an issue before starting anything large.
 
 The stack is PHP 8.4+, Symfony 8, Doctrine ORM on PostgreSQL 16, Twig with
