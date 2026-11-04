@@ -17,6 +17,8 @@ use Castor\Attribute\AsTask;
 use function Castor\io;
 use function Castor\run;
 
+defined('CASTOR_USE_CHDIR') || define('CASTOR_USE_CHDIR', true);
+
 #[AsTask(name: 'setup', description: 'First-run bootstrap: build images, start services, build assets, load fixtures')]
 function setup(): void
 {
