@@ -2,11 +2,14 @@
 
 - Status: Proposed
 - Date: 2026-11-03
-- Issue: [#187](https://github.com/pitlane-studios/pitlane/issues/187); [#22](https://github.com/pitlane-studios/pitlane/issues/22), [#27](https://github.com/pitlane-studios/pitlane/issues/27), [#28](https://github.com/pitlane-studios/pitlane/issues/28)
+- Issue: [#187](https://github.com/pitlane-studios/pitlane/issues/187);
+  [#22](https://github.com/pitlane-studios/pitlane/issues/22),
+  [#27](https://github.com/pitlane-studios/pitlane/issues/27),
+  [#28](https://github.com/pitlane-studios/pitlane/issues/28)
 
 ## Context
 
-#22 (scheduled restarts) and #27 (log parsing) were written as console
+Issues #22 (scheduled restarts) and #27 (log parsing) were written as console
 commands run every minute by the **host's system cron**. Other planned
 work also needs to run outside the HTTP request: crash detection and
 alerts (#28), content archive import (#24), the network diagnostic test,
